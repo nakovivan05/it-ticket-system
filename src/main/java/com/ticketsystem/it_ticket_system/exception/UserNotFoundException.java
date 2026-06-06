@@ -1,4 +1,4 @@
-package com.ticketsystem.it_ticket_system;
+package com.ticketsystem.it_ticket_system.exception;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.ResponseStatus;
