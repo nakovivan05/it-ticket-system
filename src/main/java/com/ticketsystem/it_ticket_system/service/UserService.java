@@ -1,6 +1,6 @@
 package com.ticketsystem.it_ticket_system.service;
 
-import com.ticketsystem.it_ticket_system.UserNotFoundException;
+import com.ticketsystem.it_ticket_system.exception.UserNotFoundException;
 import com.ticketsystem.it_ticket_system.dto.UserDTO;
 import com.ticketsystem.it_ticket_system.model.User;
 import com.ticketsystem.it_ticket_system.model.UserRole;
@@ -29,9 +29,9 @@ public class UserService {
     }
 
     public UserDTO getUserById(Long id) {
-        Optional<User> userOptional = userRepository.findById(id);
 
-        return userOptional
+        return userRepository
+                .findById(id)
                 .map(UserDTO::fromEntity)
                 .orElseThrow(() -> new UserNotFoundException("User not found with id: " + id));
     }
@@ -44,8 +44,8 @@ public class UserService {
     }
 
     public UserDTO getUserByUsername(String username) {
-        Optional<User> userOptional = userRepository.findByUsername(username);
-        return userOptional
+
+        return  userRepository.findByUsername(username)
                 .map(UserDTO::fromEntity)
                 .orElseThrow(() -> new UserNotFoundException("User not found with username: " + username));
     }
@@ -72,10 +72,9 @@ public class UserService {
 
     @Transactional
     public void deleteUser(Long id) {
-        if (!userRepository.existsById(id)) {
-            throw new UserNotFoundException("User not found with id: " + id);
-        }
-        userRepository.deleteById(id);
+        User existingUser = userRepository.findById(id)
+                .orElseThrow(() -> new UserNotFoundException("User not found with id: " + id));
+        userRepository.delete(existingUser);
     }
 
 
