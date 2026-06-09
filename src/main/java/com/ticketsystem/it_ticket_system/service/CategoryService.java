@@ -2,6 +2,7 @@ package com.ticketsystem.it_ticket_system.service;
 
 import com.ticketsystem.it_ticket_system.dto.CategoryDTO;
 import com.ticketsystem.it_ticket_system.exception.CategoryNotFoundException;
+import com.ticketsystem.it_ticket_system.exception.DuplicateCategoryNameException;
 import com.ticketsystem.it_ticket_system.model.Category;
 import com.ticketsystem.it_ticket_system.repository.CategoryRepository;
 import org.springframework.stereotype.Service;
@@ -50,6 +51,9 @@ public class CategoryService {
 
     @Transactional
     public CategoryDTO createCategory(CategoryDTO categoryDTO) {
+        if (categoryRepository.findByName(categoryDTO.getName()).isPresent()) {
+            throw new DuplicateCategoryNameException("Category name already exists: " + categoryDTO.getName());
+        }
         Category category = toEntity(categoryDTO);
         Category savedCategory = categoryRepository.save(category);
         return CategoryDTO.fromEntity(savedCategory);
@@ -59,6 +63,12 @@ public class CategoryService {
     public CategoryDTO updateCategory(Long id, CategoryDTO categoryDTO) {
         Category existingCategory = categoryRepository.findById(id)
                 .orElseThrow(() -> new CategoryNotFoundException("Category not found with id: " + id));
+
+        if (!existingCategory.getName().equals(categoryDTO.getName()) &&
+            categoryRepository.findByName(categoryDTO.getName()).isPresent()) {
+            throw new DuplicateCategoryNameException("Category name already exists: " + categoryDTO.getName());
+        }
+
         existingCategory.setName(categoryDTO.getName());
         existingCategory.setDescription(categoryDTO.getDescription());
         Category updatedCategory = categoryRepository.save(existingCategory);
