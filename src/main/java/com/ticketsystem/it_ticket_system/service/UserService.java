@@ -1,5 +1,7 @@
 package com.ticketsystem.it_ticket_system.service;
 
+import com.ticketsystem.it_ticket_system.exception.DuplicateEmailException;
+import com.ticketsystem.it_ticket_system.exception.DuplicateUsernameException;
 import com.ticketsystem.it_ticket_system.exception.UserNotFoundException;
 import com.ticketsystem.it_ticket_system.dto.UserDTO;
 import com.ticketsystem.it_ticket_system.model.User;
@@ -52,7 +54,14 @@ public class UserService {
 
     @Transactional
     public UserDTO createUser(UserDTO userDTO) {
+        if (userRepository.existsByUsername(userDTO.getUsername())) {
+            throw new DuplicateUsernameException("Username is already taken: " + userDTO.getUsername());
+        }
+        if (userRepository.existsByEmail(userDTO.getEmail())) {
+            throw new DuplicateEmailException("Email is already registered: " + userDTO.getEmail());
+        }
         User user = toEntity(userDTO);
+        user.setPassword("temporary_password");
         User savedUser = userRepository.save(user);
         return UserDTO.fromEntity(savedUser);
     }
@@ -61,6 +70,16 @@ public class UserService {
     public UserDTO updateUser(Long id, UserDTO userDTO) {
         User existingUser = userRepository.findById(id)
                 .orElseThrow(() -> new UserNotFoundException("User not found with id: " + id));
+
+        if (!existingUser.getUsername().equals(userDTO.getUsername()) &&
+            userRepository.existsByUsername(userDTO.getUsername())) {
+            throw new DuplicateUsernameException("Username is already taken: " + userDTO.getUsername());
+        }
+
+        if (!existingUser.getEmail().equals(userDTO.getEmail()) &&
+            userRepository.existsByEmail(userDTO.getEmail())) {
+            throw new DuplicateEmailException("Email is already registered: " + userDTO.getEmail());
+        }
 
         existingUser.setEmail(userDTO.getEmail());
         existingUser.setUsername(userDTO.getUsername());
