@@ -3,6 +3,7 @@ package com.ticketsystem.it_ticket_system.service;
 import com.ticketsystem.it_ticket_system.exception.DuplicateEmailException;
 import com.ticketsystem.it_ticket_system.exception.DuplicateUsernameException;
 import com.ticketsystem.it_ticket_system.exception.UserNotFoundException;
+import com.ticketsystem.it_ticket_system.exception.ValidationException;
 import com.ticketsystem.it_ticket_system.dto.UserDTO;
 import com.ticketsystem.it_ticket_system.model.User;
 import com.ticketsystem.it_ticket_system.model.UserRole;
@@ -54,6 +55,16 @@ public class UserService {
 
     @Transactional
     public UserDTO createUser(UserDTO userDTO) {
+        if (userDTO.getEmail() == null || userDTO.getEmail().trim().isEmpty()) {
+            throw new ValidationException("Email is required");
+        }
+        if (userDTO.getUsername() == null || userDTO.getUsername().trim().isEmpty()) {
+            throw new ValidationException("Username is required");
+        }
+        if (userDTO.getRole() == null || userDTO.getRole().trim().isEmpty()) {
+            throw new ValidationException("Role is required");
+        }
+
         if (userRepository.existsByUsername(userDTO.getUsername())) {
             throw new DuplicateUsernameException("Username is already taken: " + userDTO.getUsername());
         }
@@ -71,19 +82,41 @@ public class UserService {
         User existingUser = userRepository.findById(id)
                 .orElseThrow(() -> new UserNotFoundException("User not found with id: " + id));
 
-        if (!existingUser.getUsername().equals(userDTO.getUsername()) &&
-            userRepository.existsByUsername(userDTO.getUsername())) {
-            throw new DuplicateUsernameException("Username is already taken: " + userDTO.getUsername());
+        if (userDTO.getEmail() != null) {
+            if (userDTO.getEmail().trim().isEmpty()) {
+                throw new ValidationException("Email cannot be empty");
+            }
+            if (!existingUser.getEmail().equals(userDTO.getEmail()) &&
+                    userRepository.existsByEmail(userDTO.getEmail())) {
+                throw new DuplicateEmailException("Email is already registered: " + userDTO.getEmail());
+            }
         }
 
-        if (!existingUser.getEmail().equals(userDTO.getEmail()) &&
-            userRepository.existsByEmail(userDTO.getEmail())) {
-            throw new DuplicateEmailException("Email is already registered: " + userDTO.getEmail());
+        if (userDTO.getUsername() != null) {
+            if (userDTO.getUsername().trim().isEmpty()) {
+                throw new ValidationException("Username cannot be empty");
+            }
+            if (!existingUser.getUsername().equals(userDTO.getUsername()) &&
+                    userRepository.existsByUsername(userDTO.getUsername())) {
+                throw new DuplicateUsernameException("Username is already taken: " + userDTO.getUsername());
+            }
         }
 
-        existingUser.setEmail(userDTO.getEmail());
-        existingUser.setUsername(userDTO.getUsername());
-        existingUser.setRole(UserRole.valueOf(userDTO.getRole()));
+        if (userDTO.getRole() != null) {
+            if (userDTO.getRole().trim().isEmpty()) {
+                throw new ValidationException("Role cannot be empty");
+            }
+        }
+
+        if (userDTO.getEmail() != null) {
+            existingUser.setEmail(userDTO.getEmail());
+        }
+        if (userDTO.getUsername() != null) {
+            existingUser.setUsername(userDTO.getUsername());
+        }
+        if (userDTO.getRole() != null) {
+            existingUser.setRole(UserRole.valueOf(userDTO.getRole()));
+        }
 
         User updatedUser = userRepository.save(existingUser);
         return UserDTO.fromEntity(updatedUser);
@@ -95,6 +128,5 @@ public class UserService {
                 .orElseThrow(() -> new UserNotFoundException("User not found with id: " + id));
         userRepository.delete(existingUser);
     }
-
 
 }
