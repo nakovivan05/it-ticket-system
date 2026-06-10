@@ -9,12 +9,5 @@ import java.util.List;
 
 @Repository
 public interface TicketRepository extends JpaRepository<Ticket,Long> {
-    List<Ticket> findAllByOrderByCreatedAtDesc();
-    List<Ticket> findAllByOrderByCreatedAtAsc();
-    List<Ticket> findAllByOrderByUpdatedAtDesc();
-    List<Ticket> findAllByOrderByUpdatedAtAsc();
-    List<Ticket> findAllByOrderByResolvedAtDesc();
-    List<Ticket> findAllByOrderByResolvedAtAsc();
-    List<Ticket> findAllByOrderByStatusDesc();
-    List<Ticket> findAllByOrderByStatusAsc();
+
 }

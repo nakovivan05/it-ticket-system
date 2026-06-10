@@ -3,6 +3,7 @@ package com.ticketsystem.it_ticket_system.service;
 import com.ticketsystem.it_ticket_system.dto.TicketDTO;
 import com.ticketsystem.it_ticket_system.exception.CategoryNotFoundException;
 import com.ticketsystem.it_ticket_system.exception.UserNotFoundException;
+import com.ticketsystem.it_ticket_system.exception.ValidationException;
 import com.ticketsystem.it_ticket_system.model.Category;
 import com.ticketsystem.it_ticket_system.model.Ticket;
 import com.ticketsystem.it_ticket_system.model.TicketStatus;
@@ -39,17 +40,41 @@ public class TicketService {
                 .orElseThrow(() -> new TicketNotFoundException("Ticket not found with id: " + id));
     }
 
-    public List<TicketDTO> getAllTickets() {
-        return ticketRepository.findAll().stream()
+    public List<TicketDTO> getAllTickets(String sortBy, String order) {
+        Sort.Direction direction = "asc".equalsIgnoreCase(order) ? Sort.Direction.ASC : Sort.Direction.DESC;
+        Sort sort = Sort.by(direction, sortBy);
+
+        return ticketRepository.findAll(sort)
+                .stream()
                 .map(TicketDTO::fromEntity)
                 .toList();
     }
 
     @Transactional
     public TicketDTO createTicket(TicketDTO ticketDTO) {
+
+        if (ticketDTO.getTitle() == null || ticketDTO.getTitle().trim().isEmpty()) {
+            throw new ValidationException("Title is required");
+        }
+        if (ticketDTO.getDescription() == null || ticketDTO.getDescription().trim().isEmpty()) {
+            throw new ValidationException("Description is required");
+        }
+        if (ticketDTO.getReporter() == null || ticketDTO.getReporter().getId() == null) {
+            throw new ValidationException("Reporter is required");
+        }
+        if (ticketDTO.getCategory() == null || ticketDTO.getCategory().getId() == null) {
+            throw new ValidationException("Category is required");
+        }
+
         Ticket ticket = toEntity(ticketDTO);
         if (ticket.getStatus() == null) {
             ticket.setStatus(TicketStatus.NEW);
+        }
+        if ((ticket.getStatus() == TicketStatus.ASSIGNED ||
+             ticket.getStatus() == TicketStatus.IN_PROGRESS ||
+             ticket.getStatus() == TicketStatus.RESOLVED) &&
+            ticket.getAssignee() == null) {
+            throw new IllegalStateException("Assignee is required for status: " + ticket.getStatus());
         }
 
         Ticket savedTicket = ticketRepository.save(ticket);
@@ -61,16 +86,27 @@ public class TicketService {
         Ticket existingTicket = ticketRepository.findById(id)
                 .orElseThrow(() -> new TicketNotFoundException("Ticket not found with id: " + id));
 
-        existingTicket.setTitle(ticketDTO.getTitle());
-        existingTicket.setDescription(ticketDTO.getDescription());
+        if (ticketDTO.getTitle() != null && ticketDTO.getTitle().trim().isEmpty()) {
+            throw new ValidationException("Title cannot be empty");
+        }
+        if (ticketDTO.getDescription() != null && ticketDTO.getDescription().trim().isEmpty()) {
+            throw new ValidationException("Description cannot be empty");
+        }
 
-        if (ticketDTO.getStatus() != null) {
-            TicketStatus newStatus = TicketStatus.valueOf(ticketDTO.getStatus());
-            existingTicket.setStatus(newStatus);
+        if(ticketDTO.getTitle()!=null)
+        {
+            existingTicket.setTitle(ticketDTO.getTitle());
+        }
 
-            if (newStatus == TicketStatus.RESOLVED && existingTicket.getResolvedAt() == null) {
-                existingTicket.setResolvedAt(LocalDateTime.now());
-            }
+        if(ticketDTO.getDescription()!=null)
+        {
+            existingTicket.setDescription(ticketDTO.getDescription());
+        }
+
+        if (ticketDTO.getAssignee() != null) {
+            User assignee = userRepository.findById(ticketDTO.getAssignee().getId())
+                    .orElseThrow(() -> new UserNotFoundException("Assignee not found"));
+            existingTicket.setAssignee(assignee);
         }
 
         if (ticketDTO.getCategory() != null) {
@@ -79,10 +115,17 @@ public class TicketService {
             existingTicket.setCategory(category);
         }
 
-        if (ticketDTO.getAssignee() != null) {
-            User assignee = userRepository.findById(ticketDTO.getAssignee().getId())
-                    .orElseThrow(() -> new UserNotFoundException("Assignee not found"));
-            existingTicket.setAssignee(assignee);
+        if (ticketDTO.getStatus() != null) {
+            TicketStatus newStatus = TicketStatus.valueOf(ticketDTO.getStatus());
+            validateStatusTransition(existingTicket.getStatus(), newStatus, existingTicket.getAssignee());
+            existingTicket.setStatus(newStatus);
+            if (newStatus == TicketStatus.RESOLVED) {
+                existingTicket.setResolvedAt(LocalDateTime.now());
+            } else if (newStatus == TicketStatus.IN_PROGRESS && existingTicket.getResolvedAt() != null) {
+                existingTicket.setResolvedAt(null);
+            }
+        } else if (existingTicket.getStatus() == TicketStatus.NEW && existingTicket.getAssignee() != null) {
+            existingTicket.setStatus(TicketStatus.ASSIGNED);
         }
 
         Ticket updatedTicket = ticketRepository.save(existingTicket);
@@ -92,48 +135,8 @@ public class TicketService {
     @Transactional
     public void deleteTicket(Long id) {
         Ticket existingTicket = ticketRepository.findById(id)
-                .orElseThrow(() -> new UserNotFoundException("User not found with id: " + id));
+                .orElseThrow(() -> new TicketNotFoundException("Ticket not found with id: " + id));
         ticketRepository.delete(existingTicket);
-    }
-
-    public List<TicketDTO> getAllTicketsByCreatedAtDesc() {
-        return ticketRepository.findAll(Sort.by(Sort.Direction.DESC, "createdAt"))
-                .stream().map(TicketDTO::fromEntity).toList();
-    }
-
-    public List<TicketDTO> getAllTicketsByCreatedAtAsc() {
-        return ticketRepository.findAll(Sort.by(Sort.Direction.ASC, "createdAt"))
-                .stream().map(TicketDTO::fromEntity).toList();
-    }
-
-    public List<TicketDTO> getAllTicketsByUpdatedAtDesc() {
-        return ticketRepository.findAll(Sort.by(Sort.Direction.DESC, "updatedAt"))
-                .stream().map(TicketDTO::fromEntity).toList();
-    }
-
-    public List<TicketDTO> getAllTicketsByUpdatedAtAsc() {
-        return ticketRepository.findAll(Sort.by(Sort.Direction.ASC, "updatedAt"))
-                .stream().map(TicketDTO::fromEntity).toList();
-    }
-
-    public List<TicketDTO> getAllTicketsByResolvedAtDesc() {
-        return ticketRepository.findAll(Sort.by(Sort.Direction.DESC, "resolvedAt"))
-                .stream().map(TicketDTO::fromEntity).toList();
-    }
-
-    public List<TicketDTO> getAllTicketsByResolvedAtAsc() {
-        return ticketRepository.findAll(Sort.by(Sort.Direction.ASC, "resolvedAt"))
-                .stream().map(TicketDTO::fromEntity).toList();
-    }
-
-    public List<TicketDTO> getAllTicketsByStatusDesc() {
-        return ticketRepository.findAll(Sort.by(Sort.Direction.DESC, "status"))
-                .stream().map(TicketDTO::fromEntity).toList();
-    }
-
-    public List<TicketDTO> getAllTicketsByStatusAsc() {
-        return ticketRepository.findAll(Sort.by(Sort.Direction.ASC, "status"))
-                .stream().map(TicketDTO::fromEntity).toList();
     }
 
     private Ticket toEntity(TicketDTO dto) {
@@ -164,5 +167,32 @@ public class TicketService {
         }
 
         return ticket;
+    }
+
+    private void validateStatusTransition(TicketStatus currentStatus, TicketStatus newStatus, User assignee) {
+        if (currentStatus == newStatus) {
+            return;
+        }
+
+        boolean isValid = switch (currentStatus) {
+            case NEW -> newStatus == TicketStatus.ASSIGNED;
+            case ASSIGNED -> newStatus == TicketStatus.IN_PROGRESS;
+            case IN_PROGRESS -> newStatus == TicketStatus.RESOLVED;
+            case RESOLVED -> newStatus == TicketStatus.CLOSED || newStatus == TicketStatus.IN_PROGRESS;
+            case CLOSED -> false;
+        };
+
+        if (!isValid) {
+            throw new IllegalStateException(
+                    "Invalid status transition from " + currentStatus + " to " + newStatus
+            );
+        }
+
+        if ((newStatus == TicketStatus.ASSIGNED ||
+                newStatus == TicketStatus.IN_PROGRESS ||
+                newStatus == TicketStatus.RESOLVED) &&
+                assignee == null) {
+            throw new IllegalStateException("Assignee is required for status: " + newStatus);
+        }
     }
 }
