@@ -83,8 +83,10 @@ public class CategoryService {
             existingCategory.setName(categoryDTO.getName());
         }
 
-        existingCategory.setDescription(categoryDTO.getDescription());
-
+        if(categoryDTO.getDescription()!=null)
+        {
+            existingCategory.setDescription(categoryDTO.getDescription());
+        }
         Category updatedCategory = categoryRepository.save(existingCategory);
         return CategoryDTO.fromEntity(updatedCategory);
     }

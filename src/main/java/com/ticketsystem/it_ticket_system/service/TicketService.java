@@ -86,8 +86,22 @@ public class TicketService {
         Ticket existingTicket = ticketRepository.findById(id)
                 .orElseThrow(() -> new TicketNotFoundException("Ticket not found with id: " + id));
 
-        existingTicket.setTitle(ticketDTO.getTitle());
-        existingTicket.setDescription(ticketDTO.getDescription());
+        if (ticketDTO.getTitle() != null && ticketDTO.getTitle().trim().isEmpty()) {
+            throw new ValidationException("Title cannot be empty");
+        }
+        if (ticketDTO.getDescription() != null && ticketDTO.getDescription().trim().isEmpty()) {
+            throw new ValidationException("Description cannot be empty");
+        }
+
+        if(ticketDTO.getTitle()!=null)
+        {
+            existingTicket.setTitle(ticketDTO.getTitle());
+        }
+
+        if(ticketDTO.getDescription()!=null)
+        {
+            existingTicket.setDescription(ticketDTO.getDescription());
+        }
 
         if (ticketDTO.getAssignee() != null) {
             User assignee = userRepository.findById(ticketDTO.getAssignee().getId())
