@@ -1,5 +1,6 @@
 package com.ticketsystem.it_ticket_system.controller;
 
+import com.ticketsystem.it_ticket_system.dto.PasswordDTO;
 import com.ticketsystem.it_ticket_system.dto.UserDTO;
 import com.ticketsystem.it_ticket_system.service.UserService;
 import org.springframework.http.HttpStatus;
@@ -35,12 +36,6 @@ public class UserController {
         return ResponseEntity.ok(userDTO);
     }
 
-    @PostMapping
-    public ResponseEntity<UserDTO> createUser(@RequestBody UserDTO userDTO) {
-        UserDTO createdUser = userService.createUser(userDTO);
-        return new ResponseEntity<>(createdUser,HttpStatus.CREATED);
-    }
-
     @PutMapping("/{id}")
     public ResponseEntity<UserDTO> updateUser(@PathVariable Long id, @RequestBody UserDTO userDTO) {
         UserDTO updatedUser = userService.updateUser(id, userDTO);
@@ -51,6 +46,12 @@ public class UserController {
     public ResponseEntity<Void> deleteUser(@PathVariable Long id) {
         userService.deleteUser(id);
         return ResponseEntity.noContent().build();
+    }
+
+    @PostMapping("/update-password/{id}")
+    public ResponseEntity<Void> updatePassword(@PathVariable Long id, @RequestBody PasswordDTO passwordDTO) {
+        userService.updatePassword(id, passwordDTO);
+        return ResponseEntity.ok().build();
     }
 
 }
