@@ -16,7 +16,7 @@ public class JwtService {
     public JwtService() {
         String secret = System.getenv("JWT_SECRET");
         if (secret == null || secret.isEmpty()) {
-            secret = "your-very-secure-secret-key-at-least-256-bits-long";
+            throw new IllegalStateException("JWT_SECRET environment variable must be set");
         }
         this.secretKey = Keys.hmacShaKeyFor(secret.getBytes());
         this.jwtExpiration = 86400000;
