@@ -6,6 +6,8 @@ import com.ticketsystem.it_ticket_system.exception.DuplicateCategoryNameExceptio
 import com.ticketsystem.it_ticket_system.exception.ValidationException;
 import com.ticketsystem.it_ticket_system.model.Category;
 import com.ticketsystem.it_ticket_system.repository.CategoryRepository;
+import com.ticketsystem.it_ticket_system.repository.TicketRepository;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -13,11 +15,14 @@ import java.util.List;
 import java.util.Optional;
 
 @Service
+@PreAuthorize("hasRole('ADMIN')")
 public class CategoryService {
     private final CategoryRepository categoryRepository;
+    private final TicketRepository ticketRepository;
 
-    public CategoryService(CategoryRepository categoryRepository) {
+    public CategoryService(CategoryRepository categoryRepository, TicketRepository ticketRepository) {
         this.categoryRepository = categoryRepository;
+        this.ticketRepository = ticketRepository;
     }
 
     private Category toEntity(CategoryDTO categoryDTO)
@@ -96,6 +101,9 @@ public class CategoryService {
     {
         Category existingCategory = categoryRepository.findById(id)
                 .orElseThrow(() -> new CategoryNotFoundException("Category not found with id: " + id));
+        if (ticketRepository.existsByCategoryId(id)) {
+            throw new ValidationException("Cannot delete category that is referenced by tickets");
+        }
         categoryRepository.delete(existingCategory);
     }
 
