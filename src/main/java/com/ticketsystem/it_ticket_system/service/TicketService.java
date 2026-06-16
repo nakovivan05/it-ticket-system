@@ -4,15 +4,15 @@ import com.ticketsystem.it_ticket_system.dto.TicketDTO;
 import com.ticketsystem.it_ticket_system.exception.CategoryNotFoundException;
 import com.ticketsystem.it_ticket_system.exception.UserNotFoundException;
 import com.ticketsystem.it_ticket_system.exception.ValidationException;
-import com.ticketsystem.it_ticket_system.model.Category;
-import com.ticketsystem.it_ticket_system.model.Ticket;
-import com.ticketsystem.it_ticket_system.model.TicketStatus;
-import com.ticketsystem.it_ticket_system.model.User;
+import com.ticketsystem.it_ticket_system.model.*;
 import com.ticketsystem.it_ticket_system.repository.CategoryRepository;
 import com.ticketsystem.it_ticket_system.repository.TicketRepository;
 import com.ticketsystem.it_ticket_system.repository.UserRepository;
 import com.ticketsystem.it_ticket_system.exception.TicketNotFoundException;
 import org.springframework.data.domain.Sort;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -20,6 +20,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 @Service
+@PreAuthorize("hasAnyRole('ADMIN', 'EMPLOYEE', 'TECHNICIAN')")
 public class TicketService {
 
     private final TicketRepository ticketRepository;
@@ -35,23 +36,45 @@ public class TicketService {
     }
 
     public TicketDTO getTicketById(Long id) {
-        return ticketRepository.findById(id)
-                .map(TicketDTO::fromEntity)
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        String currentUser = authentication.getName();
+
+        Ticket ticket = ticketRepository.findById(id)
                 .orElseThrow(() -> new TicketNotFoundException("Ticket not found with id: " + id));
+
+        if (hasRole(authentication, "EMPLOYEE")) {
+            if (!ticket.getReporter().getUsername().equals(currentUser)) {
+                throw new SecurityException("You can only view your own tickets");
+            }
+        }
+
+        return TicketDTO.fromEntity(ticket);
     }
 
     public List<TicketDTO> getAllTickets(String sortBy, String order) {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        String currentUser = authentication.getName();
+
         Sort.Direction direction = "asc".equalsIgnoreCase(order) ? Sort.Direction.ASC : Sort.Direction.DESC;
         Sort sort = Sort.by(direction, sortBy);
 
-        return ticketRepository.findAll(sort)
-                .stream()
+        List<Ticket> tickets;
+
+        if (hasRole(authentication, "EMPLOYEE")) {
+            tickets = ticketRepository.findByReporterUsername(currentUser, sort);
+        } else {
+            tickets = ticketRepository.findAll(sort);
+        }
+
+        return tickets.stream()
                 .map(TicketDTO::fromEntity)
                 .toList();
     }
 
     @Transactional
     public TicketDTO createTicket(TicketDTO ticketDTO) {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        String currentUser = authentication.getName();
 
         if (ticketDTO.getTitle() == null || ticketDTO.getTitle().trim().isEmpty()) {
             throw new ValidationException("Title is required");
@@ -59,21 +82,25 @@ public class TicketService {
         if (ticketDTO.getDescription() == null || ticketDTO.getDescription().trim().isEmpty()) {
             throw new ValidationException("Description is required");
         }
-        if (ticketDTO.getReporter() == null || ticketDTO.getReporter().getId() == null) {
-            throw new ValidationException("Reporter is required");
-        }
         if (ticketDTO.getCategory() == null || ticketDTO.getCategory().getId() == null) {
             throw new ValidationException("Category is required");
         }
 
         Ticket ticket = toEntity(ticketDTO);
+
+        if (hasRole(authentication, "EMPLOYEE")) {
+            User currentUserEntity = userRepository.findByUsername(currentUser)
+                    .orElseThrow(() -> new UserNotFoundException("Current user not found"));
+            ticket.setReporter(currentUserEntity);
+        }
+
         if (ticket.getStatus() == null) {
             ticket.setStatus(TicketStatus.NEW);
         }
         if ((ticket.getStatus() == TicketStatus.ASSIGNED ||
-             ticket.getStatus() == TicketStatus.IN_PROGRESS ||
-             ticket.getStatus() == TicketStatus.RESOLVED) &&
-            ticket.getAssignee() == null) {
+                ticket.getStatus() == TicketStatus.IN_PROGRESS ||
+                ticket.getStatus() == TicketStatus.RESOLVED) &&
+                ticket.getAssignee() == null) {
             throw new IllegalStateException("Assignee is required for status: " + ticket.getStatus());
         }
 
@@ -83,8 +110,17 @@ public class TicketService {
 
     @Transactional
     public TicketDTO updateTicket(Long id, TicketDTO ticketDTO) {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        String currentUser = authentication.getName();
+
         Ticket existingTicket = ticketRepository.findById(id)
                 .orElseThrow(() -> new TicketNotFoundException("Ticket not found with id: " + id));
+
+        if (hasRole(authentication, "EMPLOYEE")) {
+            if (!existingTicket.getReporter().getUsername().equals(currentUser)) {
+                throw new SecurityException("You can only update your own tickets");
+            }
+        }
 
         if (ticketDTO.getTitle() != null && ticketDTO.getTitle().trim().isEmpty()) {
             throw new ValidationException("Title cannot be empty");
@@ -93,19 +129,20 @@ public class TicketService {
             throw new ValidationException("Description cannot be empty");
         }
 
-        if(ticketDTO.getTitle()!=null)
-        {
+        if(ticketDTO.getTitle()!=null) {
             existingTicket.setTitle(ticketDTO.getTitle());
         }
 
-        if(ticketDTO.getDescription()!=null)
-        {
+        if(ticketDTO.getDescription()!=null) {
             existingTicket.setDescription(ticketDTO.getDescription());
         }
 
         if (ticketDTO.getAssignee() != null) {
             User assignee = userRepository.findById(ticketDTO.getAssignee().getId())
                     .orElseThrow(() -> new UserNotFoundException("Assignee not found"));
+            if (assignee.getRole() != UserRole.TECHNICIAN && assignee.getRole() != UserRole.ADMIN) {
+                throw new ValidationException("Assignee must be a TECHNICIAN or ADMIN");
+            }
             existingTicket.setAssignee(assignee);
         }
 
@@ -134,8 +171,18 @@ public class TicketService {
 
     @Transactional
     public void deleteTicket(Long id) {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        String currentUser = authentication.getName();
+
         Ticket existingTicket = ticketRepository.findById(id)
                 .orElseThrow(() -> new TicketNotFoundException("Ticket not found with id: " + id));
+        
+        if (hasRole(authentication, "EMPLOYEE")) {
+            if (!existingTicket.getReporter().getUsername().equals(currentUser)) {
+                throw new SecurityException("You can only delete your own tickets");
+            }
+        }
+
         ticketRepository.delete(existingTicket);
     }
 
@@ -194,5 +241,9 @@ public class TicketService {
                 assignee == null) {
             throw new IllegalStateException("Assignee is required for status: " + newStatus);
         }
+    }
+    private boolean hasRole(Authentication authentication, String role) {
+        return authentication.getAuthorities().stream()
+                .anyMatch(authority -> authority.getAuthority().equals("ROLE_" + role));
     }
 }
