@@ -2,16 +2,25 @@ package com.ticketsystem.it_ticket_system.controller;
 
 import com.ticketsystem.it_ticket_system.dto.TicketDTO;
 import com.ticketsystem.it_ticket_system.service.TicketService;
+import jakarta.validation.Valid;
+import jakarta.validation.ValidationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Set;
 
 @RestController
+@PreAuthorize("hasAnyRole('ADMIN', 'EMPLOYEE','TECHNICIAN')")
 @RequestMapping("/api/tickets")
 public class TicketController {
     private final TicketService ticketService;
+    private static final Set<String> ALLOWED_SORT_FIELDS = Set.of(
+            "id", "title", "status", "createdAt", "updatedAt", "resolvedAt"
+    );
+
 
     public TicketController(TicketService ticketService) {
         this.ticketService = ticketService;
@@ -21,6 +30,10 @@ public class TicketController {
     public ResponseEntity<List<TicketDTO>> getAllTickets(
             @RequestParam(required = false, defaultValue = "createdAt") String sortBy,
             @RequestParam(required = false, defaultValue = "desc") String order) {
+
+        if (!ALLOWED_SORT_FIELDS.contains(sortBy)) {
+            throw new ValidationException("Invalid sort field: " + sortBy);
+        }
 
         List<TicketDTO> tickets = ticketService.getAllTickets(sortBy, order);
         return ResponseEntity.ok(tickets);
@@ -33,13 +46,13 @@ public class TicketController {
     }
 
     @PostMapping
-    public ResponseEntity<TicketDTO> createTicket(@RequestBody TicketDTO ticketDTO) {
+    public ResponseEntity<TicketDTO> createTicket(@Valid @RequestBody TicketDTO ticketDTO) {
         TicketDTO createdTicket = ticketService.createTicket(ticketDTO);
         return new ResponseEntity<>(createdTicket, HttpStatus.CREATED);
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<TicketDTO> updateTicket(@PathVariable Long id, @RequestBody TicketDTO ticketDTO) {
+    public ResponseEntity<TicketDTO> updateTicket(@PathVariable Long id, @Valid @RequestBody TicketDTO ticketDTO) {
         TicketDTO updatedTicket = ticketService.updateTicket(id, ticketDTO);
         return ResponseEntity.ok(updatedTicket);
     }
