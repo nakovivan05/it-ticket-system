@@ -20,7 +20,6 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 @Service
-@PreAuthorize("hasAnyRole('ADMIN', 'EMPLOYEE', 'TECHNICIAN')")
 public class TicketService {
 
     private final TicketRepository ticketRepository;
@@ -35,6 +34,7 @@ public class TicketService {
         this.userRepository = userRepository;
     }
 
+    @PreAuthorize("hasAnyRole('ADMIN', 'EMPLOYEE', 'TECHNICIAN')")
     public TicketDTO getTicketById(Long id) {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         String currentUser = authentication.getName();
@@ -50,7 +50,7 @@ public class TicketService {
 
         return TicketDTO.fromEntity(ticket);
     }
-
+    @PreAuthorize("hasAnyRole('ADMIN', 'EMPLOYEE', 'TECHNICIAN')")
     public List<TicketDTO> getAllTickets(String sortBy, String order) {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         String currentUser = authentication.getName();
@@ -72,6 +72,7 @@ public class TicketService {
     }
 
     @Transactional
+    @PreAuthorize("hasAnyRole('ADMIN', 'EMPLOYEE')")
     public TicketDTO createTicket(TicketDTO ticketDTO) {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         String currentUser = authentication.getName();
@@ -84,6 +85,11 @@ public class TicketService {
         }
         if (ticketDTO.getCategory() == null || ticketDTO.getCategory().getId() == null) {
             throw new ValidationException("Category is required");
+        }
+
+        if(!categoryRepository.existsById(ticketDTO.getCategory().getId()))
+        {
+            throw new CategoryNotFoundException("Category not found with id: " + ticketDTO.getCategory().getId());
         }
 
         Ticket ticket = toEntity(ticketDTO);
@@ -109,6 +115,7 @@ public class TicketService {
     }
 
     @Transactional
+    @PreAuthorize("hasAnyRole('ADMIN', 'EMPLOYEE', 'TECHNICIAN')")
     public TicketDTO updateTicket(Long id, TicketDTO ticketDTO) {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         String currentUser = authentication.getName();
@@ -119,6 +126,18 @@ public class TicketService {
         if (hasRole(authentication, "EMPLOYEE")) {
             if (!existingTicket.getReporter().getUsername().equals(currentUser)) {
                 throw new SecurityException("You can only update your own tickets");
+            }
+        }
+
+        User currentUserEntity = userRepository.findByUsername(currentUser)
+                .orElseThrow(() -> new UserNotFoundException("Current user not found"));
+
+        if (hasRole(authentication, "TECHNICIAN")) {
+            if (ticketDTO.getTitle() != null) {
+                throw new ValidationException("TECHNICIANs cannot change ticket title");
+            }
+            if (ticketDTO.getDescription() != null) {
+                throw new ValidationException("TECHNICIANs cannot change ticket description");
             }
         }
 
@@ -140,9 +159,15 @@ public class TicketService {
         if (ticketDTO.getAssignee() != null) {
             User assignee = userRepository.findById(ticketDTO.getAssignee().getId())
                     .orElseThrow(() -> new UserNotFoundException("Assignee not found"));
+
             if (assignee.getRole() != UserRole.TECHNICIAN && assignee.getRole() != UserRole.ADMIN) {
                 throw new ValidationException("Assignee must be a TECHNICIAN or ADMIN");
             }
+
+            if (hasRole(authentication, "EMPLOYEE")) {
+                throw new SecurityException("EMPLOYEEs cannot assign tickets");
+            }
+
             existingTicket.setAssignee(assignee);
         }
 
@@ -170,6 +195,7 @@ public class TicketService {
     }
 
     @Transactional
+    @PreAuthorize("hasAnyRole('ADMIN', 'EMPLOYEE')")
     public void deleteTicket(Long id) {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         String currentUser = authentication.getName();
