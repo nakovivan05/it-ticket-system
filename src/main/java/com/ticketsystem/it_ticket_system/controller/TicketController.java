@@ -1,6 +1,8 @@
 package com.ticketsystem.it_ticket_system.controller;
 
+import com.ticketsystem.it_ticket_system.dto.CommentDTO;
 import com.ticketsystem.it_ticket_system.dto.TicketDTO;
+import com.ticketsystem.it_ticket_system.service.CommentService;
 import com.ticketsystem.it_ticket_system.service.TicketService;
 import jakarta.validation.Valid;
 import jakarta.validation.ValidationException;
@@ -17,13 +19,15 @@ import java.util.Set;
 @RequestMapping("/api/tickets")
 public class TicketController {
     private final TicketService ticketService;
+    private final CommentService commentService;
     private static final Set<String> ALLOWED_SORT_FIELDS = Set.of(
             "id", "title", "status", "createdAt", "updatedAt", "resolvedAt"
     );
 
 
-    public TicketController(TicketService ticketService) {
+    public TicketController(TicketService ticketService,CommentService commentService) {
         this.ticketService = ticketService;
+        this.commentService = commentService;
     }
 
     @GetMapping
@@ -45,6 +49,13 @@ public class TicketController {
     public ResponseEntity<TicketDTO> getTicketById(@PathVariable Long id) {
         TicketDTO ticket = ticketService.getTicketById(id);
         return ResponseEntity.ok(ticket);
+    }
+
+    @GetMapping("/{ticketId}/comments")
+    @PreAuthorize("hasAnyRole('ADMIN', 'EMPLOYEE', 'TECHNICIAN')")
+    public ResponseEntity<List<CommentDTO>> getCommentsForTicket(@PathVariable Long ticketId) {
+        List<CommentDTO> comments = commentService.getCommentsByTicketId(ticketId);
+        return ResponseEntity.ok(comments);
     }
 
     @PostMapping
