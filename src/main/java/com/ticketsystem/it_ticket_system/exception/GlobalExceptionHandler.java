@@ -16,7 +16,8 @@ public class GlobalExceptionHandler {
     @ExceptionHandler({
             TicketNotFoundException.class,
             CategoryNotFoundException.class,
-            UserNotFoundException.class
+            UserNotFoundException.class,
+            CommentNotFoundException.class
     })
     public ResponseEntity<ErrorResponse> handleResourceNotFound(RuntimeException ex) {
         ErrorResponse error = new ErrorResponse(

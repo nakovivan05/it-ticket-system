@@ -7,6 +7,8 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 @Data
 @Builder
@@ -50,6 +52,9 @@ public class Ticket {
     @ManyToOne
     @JoinColumn(name = "assignee_id", nullable = true)
     private User assignee;
+
+    @OneToMany(mappedBy = "ticket", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<Comment> comments = new ArrayList<>();
 
     @PrePersist
     protected void onCreate() {
