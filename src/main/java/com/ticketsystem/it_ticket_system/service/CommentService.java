@@ -46,8 +46,36 @@ public class CommentService {
         String user = getCurrentUser();
         Comment comment = commentRepository.findById(id)
                 .orElseThrow(() -> new CommentNotFoundException("Comment not found with id: " + id));
+        User currentUser = userRepository.findByUsername(user)
+                .orElseThrow(() -> new UserNotFoundException("User not found with username: " + user));
+        boolean isAssignee = comment.getTicket().getAssignee() != null && currentUser.equals(comment.getTicket().getAssignee());
 
+        if(!currentUser.equals(comment.getTicket().getReporter())&&!isAssignee&&!hasRole("ADMIN"))
+        {
+            throw new SecurityException("User is not authorized to view this comment");
+        }
         return CommentDTO.fromEntity(comment);
+    }
+
+    @PreAuthorize("hasAnyRole('ADMIN', 'EMPLOYEE', 'TECHNICIAN')")
+    public List<CommentDTO> getCommentsByTicketId(Long ticketId) {
+        Ticket ticket = ticketRepository.findById(ticketId)
+                .orElseThrow(() -> new TicketNotFoundException("Ticket not found with id: " + ticketId));
+
+        String user = getCurrentUser();
+        User currentUser = userRepository.findByUsername(user)
+                .orElseThrow(() -> new UserNotFoundException("User not found with username: " + user));
+        boolean isAssignee = ticket.getAssignee() != null && currentUser.equals(ticket.getAssignee());
+
+        if(!currentUser.equals(ticket.getReporter())&&!isAssignee&&!hasRole("ADMIN"))
+        {
+            throw new SecurityException("User is not authorized to view comments for this ticket");
+        }
+
+        return commentRepository.findByTicket(ticket)
+                .stream()
+                .map(CommentDTO::fromEntity)
+                .collect(Collectors.toList());
     }
 
     @PreAuthorize("hasAnyRole('ADMIN', 'EMPLOYEE', 'TECHNICIAN')")
@@ -58,6 +86,11 @@ public class CommentService {
         String user = getCurrentUser();
         User currentUser = userRepository.findByUsername(user)
                 .orElseThrow(() -> new UserNotFoundException("User not found with username: " + user));
+        boolean isAssignee = ticket.getAssignee() != null && currentUser.equals(ticket.getAssignee());
+        if(!currentUser.equals(ticket.getReporter())&&!isAssignee&&!hasRole("ADMIN"))
+        {
+            throw new SecurityException("User is not authorized to create comments for this ticket");
+        }
         Comment comment = Comment.builder()
                 .content(createCommentDTO.getContent())
                 .ticket(ticket)
