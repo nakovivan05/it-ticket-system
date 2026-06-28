@@ -1,6 +1,8 @@
 package com.ticketsystem.it_ticket_system.controller;
 
 import com.ticketsystem.it_ticket_system.dto.CategoryDTO;
+import com.ticketsystem.it_ticket_system.dto.CreateCategoryDTO;
+import com.ticketsystem.it_ticket_system.dto.UpdateCategoryDTO;
 import com.ticketsystem.it_ticket_system.service.CategoryService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
@@ -40,14 +42,14 @@ public class CategoryController {
     }
 
     @PostMapping
-    public ResponseEntity<CategoryDTO> createCategory(@Valid @RequestBody CategoryDTO categoryDTO) {
-        CategoryDTO createdCategory = categoryService.createCategory(categoryDTO);
+    public ResponseEntity<CategoryDTO> createCategory(@Valid @RequestBody CreateCategoryDTO createCategoryDTO) {
+        CategoryDTO createdCategory = categoryService.createCategory(createCategoryDTO);
         return new ResponseEntity<>(createdCategory, HttpStatus.CREATED);
     }
 
-    @PutMapping("/{id}")
-    public ResponseEntity<CategoryDTO> updateCategory(@PathVariable Long id, @Valid @RequestBody CategoryDTO categoryDTO) {
-        CategoryDTO updatedCategory = categoryService.updateCategory(id, categoryDTO);
+    @PatchMapping("/{id}")
+    public ResponseEntity<CategoryDTO> updateCategory(@PathVariable Long id, @Valid @RequestBody UpdateCategoryDTO updateCategoryDTO) {
+        CategoryDTO updatedCategory = categoryService.updateCategory(id, updateCategoryDTO);
         return ResponseEntity.ok(updatedCategory);
     }
 
