@@ -1,6 +1,8 @@
 package com.ticketsystem.it_ticket_system.service;
 
 import com.ticketsystem.it_ticket_system.dto.CategoryDTO;
+import com.ticketsystem.it_ticket_system.dto.CreateCategoryDTO;
+import com.ticketsystem.it_ticket_system.dto.UpdateCategoryDTO;
 import com.ticketsystem.it_ticket_system.exception.CategoryNotFoundException;
 import com.ticketsystem.it_ticket_system.exception.DuplicateCategoryNameException;
 import com.ticketsystem.it_ticket_system.exception.ValidationException;
@@ -25,15 +27,6 @@ public class CategoryService {
         this.ticketRepository = ticketRepository;
     }
 
-    private Category toEntity(CategoryDTO categoryDTO)
-    {
-        return Category.builder()
-                .id(categoryDTO.getId())
-                .name(categoryDTO.getName())
-                .description(categoryDTO.getDescription())
-                .build();
-    }
-
     public CategoryDTO getCategoryById(Long id) {
 
         return categoryRepository.findById(id)
@@ -56,42 +49,37 @@ public class CategoryService {
     }
 
     @Transactional
-    public CategoryDTO createCategory(CategoryDTO categoryDTO) {
-        if (categoryDTO.getName() == null || categoryDTO.getName().trim().isEmpty()) {
-            throw new ValidationException("Category name is required");
+    public CategoryDTO createCategory(CreateCategoryDTO createCategoryDTO) {
+        Category category = Category.builder()
+                .name(createCategoryDTO.getName())
+                .description(createCategoryDTO.getDescription())
+                .build();
+        if (categoryRepository.findByName(createCategoryDTO.getName()).isPresent()) {
+            throw new DuplicateCategoryNameException("Category name already exists: " + createCategoryDTO.getName());
         }
-
-        if (categoryRepository.findByName(categoryDTO.getName()).isPresent()) {
-            throw new DuplicateCategoryNameException("Category name already exists: " + categoryDTO.getName());
-        }
-        Category category = toEntity(categoryDTO);
         Category savedCategory = categoryRepository.save(category);
         return CategoryDTO.fromEntity(savedCategory);
     }
 
     @Transactional
-    public CategoryDTO updateCategory(Long id, CategoryDTO categoryDTO) {
+    public CategoryDTO updateCategory(Long id, UpdateCategoryDTO updateCategoryDTO) {
         Category existingCategory = categoryRepository.findById(id)
                 .orElseThrow(() -> new CategoryNotFoundException("Category not found with id: " + id));
 
-        if (categoryDTO.getName() != null) {
-            if (categoryDTO.getName().trim().isEmpty()) {
-                throw new ValidationException("Category name cannot be empty");
-            }
-            if (!existingCategory.getName().equals(categoryDTO.getName()) &&
-                    categoryRepository.findByName(categoryDTO.getName()).isPresent()) {
-                throw new DuplicateCategoryNameException("Category name already exists: " + categoryDTO.getName());
-            }
-        }
+       if(updateCategoryDTO.getName()!=null)
+       {
+           if(!existingCategory.getName().equals(updateCategoryDTO.getName()) &&
+                   categoryRepository.findByName(updateCategoryDTO.getName()).isPresent()) {
+               throw new DuplicateCategoryNameException("Category name already exists: " + updateCategoryDTO.getName());
+           }
+           existingCategory.setName(updateCategoryDTO.getName());
+       }
 
-        if (categoryDTO.getName() != null) {
-            existingCategory.setName(categoryDTO.getName());
-        }
+       if(updateCategoryDTO.getDescription()!=null)
+       {
+           existingCategory.setDescription(updateCategoryDTO.getDescription());
+       }
 
-        if(categoryDTO.getDescription()!=null)
-        {
-            existingCategory.setDescription(categoryDTO.getDescription());
-        }
         Category updatedCategory = categoryRepository.save(existingCategory);
         return CategoryDTO.fromEntity(updatedCategory);
     }
