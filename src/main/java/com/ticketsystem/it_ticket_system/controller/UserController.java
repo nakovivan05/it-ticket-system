@@ -1,6 +1,7 @@
 package com.ticketsystem.it_ticket_system.controller;
 
 import com.ticketsystem.it_ticket_system.dto.PasswordDTO;
+import com.ticketsystem.it_ticket_system.dto.UpdateUserDTO;
 import com.ticketsystem.it_ticket_system.dto.UserDTO;
 import com.ticketsystem.it_ticket_system.service.UserService;
 import jakarta.validation.Valid;
@@ -42,8 +43,8 @@ public class UserController {
     }
 
     @PreAuthorize("hasRole('ADMIN')")
-    @PutMapping("/{id}")
-    public ResponseEntity<UserDTO> updateUser(@PathVariable Long id, @Valid @RequestBody UserDTO userDTO) {
+    @PatchMapping("/{id}")
+    public ResponseEntity<UserDTO> updateUser(@PathVariable Long id, @Valid @RequestBody UpdateUserDTO userDTO) {
         UserDTO updatedUser = userService.updateUser(id, userDTO);
         return ResponseEntity.ok(updatedUser);
     }
