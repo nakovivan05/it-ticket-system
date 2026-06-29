@@ -150,17 +150,17 @@ public class TicketService {
         }
 
         if (updateTicketDTO.getStatus() != null) {
-                TicketStatus newStatus = updateTicketDTO.getStatus();
-                validateStatusTransition(existingTicket.getStatus(), newStatus, existingTicket.getAssignee());
-                existingTicket.setStatus(newStatus);
-                if (newStatus == TicketStatus.RESOLVED) {
-                    existingTicket.setResolvedAt(LocalDateTime.now());
-                } else if (newStatus == TicketStatus.IN_PROGRESS && existingTicket.getResolvedAt() != null) {
-                    existingTicket.setResolvedAt(null);
-                }
+            TicketStatus newStatus = updateTicketDTO.getStatus();
+            validateStatusTransition(existingTicket.getStatus(), newStatus, existingTicket.getAssignee());
+            existingTicket.setStatus(newStatus);
+            if (newStatus == TicketStatus.RESOLVED) {
+                existingTicket.setResolvedAt(LocalDateTime.now());
+            } else if (newStatus == TicketStatus.IN_PROGRESS && existingTicket.getResolvedAt() != null) {
+                existingTicket.setResolvedAt(null);
             } else if (existingTicket.getStatus() == TicketStatus.NEW && existingTicket.getAssignee() != null) {
                 existingTicket.setStatus(TicketStatus.ASSIGNED);
             }
+        }
 
 
         Ticket updatedTicket = ticketRepository.save(existingTicket);
