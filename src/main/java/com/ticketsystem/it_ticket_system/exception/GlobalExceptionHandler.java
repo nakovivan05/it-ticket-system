@@ -5,6 +5,9 @@ import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import com.ticketsystem.it_ticket_system.exception.ValidationException;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.validation.FieldError;
+import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
@@ -47,8 +50,26 @@ public class GlobalExceptionHandler {
         return new ResponseEntity<>(error, HttpStatus.BAD_REQUEST);
     }
 
-    @ExceptionHandler(SecurityException.class)
-    public ResponseEntity<ErrorResponse> handleSecurityException(SecurityException ex) {
+    @ExceptionHandler(MethodArgumentNotValidException.class)
+    public ResponseEntity<ErrorResponse> handleValidationException(MethodArgumentNotValidException ex) {
+        StringBuilder errors = new StringBuilder();
+        for (FieldError error : ex.getBindingResult().getFieldErrors()) {
+            errors.append(error.getField()).append(": ").append(error.getDefaultMessage()).append("; ");
+        }
+
+        ErrorResponse error = new ErrorResponse(
+                HttpStatus.BAD_REQUEST.value(),
+                "Validation Failed",
+                errors.toString(),
+                LocalDateTime.now()
+        );
+        return new ResponseEntity<>(error, HttpStatus.BAD_REQUEST);
+    }
+
+    @ExceptionHandler({SecurityException.class,
+    AccessDeniedException.class
+    })
+    public ResponseEntity<ErrorResponse> handleSecurityException(RuntimeException ex) {
         ErrorResponse error = new ErrorResponse(
                 HttpStatus.FORBIDDEN.value(),
                 "Forbidden",
