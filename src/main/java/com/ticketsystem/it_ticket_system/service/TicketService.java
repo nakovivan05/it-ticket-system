@@ -86,11 +86,9 @@ public class TicketService {
                 .status(TicketStatus.NEW)
                 .build();
 
-        if (hasRole("EMPLOYEE")) {
-            User user = userRepository.findByUsername(currentUser)
+        User user = userRepository.findByUsername(currentUser)
                     .orElseThrow(() -> new UserNotFoundException("Current user not found"));
-            ticket.setReporter(user);
-        }
+        ticket.setReporter(user);
 
         Ticket savedTicket = ticketRepository.save(ticket);
         return TicketDTO.fromEntity(savedTicket);
@@ -109,9 +107,24 @@ public class TicketService {
             if (!existingTicket.getReporter().getUsername().equals(currentUser)) {
                 throw new SecurityException("You can only update your own tickets");
             }
+            if(updateTicketDTO.getAssigneeId()!=null)
+            {
+                throw new ValidationException("EMPLOYEEs cannot assign tickets");
+            }
+            if(updateTicketDTO.getStatus()!=null)
+            {
+                throw new ValidationException("EMPLOYEEs cannot change ticket status");
+            }
         }
 
         if (hasRole("TECHNICIAN")) {
+            boolean isUnassigned = existingTicket.getAssignee() == null;
+            boolean isAssignedToMe = existingTicket.getAssignee() != null &&
+                    existingTicket.getAssignee().getUsername().equals(currentUser);
+
+            if (!isUnassigned && !isAssignedToMe) {
+                throw new SecurityException("You can only update unassigned tickets or tickets assigned to you");
+            }
             if (updateTicketDTO.getTitle() != null) {
                 throw new ValidationException("TECHNICIANs cannot change ticket title");
             }
@@ -131,16 +144,13 @@ public class TicketService {
         if (updateTicketDTO.getAssigneeId() != null) {
             User assignee = userRepository.findById(updateTicketDTO.getAssigneeId())
                     .orElseThrow(() -> new UserNotFoundException("Assignee not found"));
-
             if (assignee.getRole() != UserRole.TECHNICIAN && assignee.getRole() != UserRole.ADMIN) {
                 throw new ValidationException("Assignee must be a TECHNICIAN or ADMIN");
             }
-
-            if (hasRole("EMPLOYEE")) {
-                throw new SecurityException("EMPLOYEEs cannot assign tickets");
-            }
-
             existingTicket.setAssignee(assignee);
+            if (existingTicket.getStatus() == TicketStatus.NEW) {
+                existingTicket.setStatus(TicketStatus.ASSIGNED);
+            }
         }
 
         if (updateTicketDTO.getCategoryId() != null) {
@@ -157,8 +167,6 @@ public class TicketService {
                 existingTicket.setResolvedAt(LocalDateTime.now());
             } else if (newStatus == TicketStatus.IN_PROGRESS && existingTicket.getResolvedAt() != null) {
                 existingTicket.setResolvedAt(null);
-            } else if (existingTicket.getStatus() == TicketStatus.NEW && existingTicket.getAssignee() != null) {
-                existingTicket.setStatus(TicketStatus.ASSIGNED);
             }
         }
 
