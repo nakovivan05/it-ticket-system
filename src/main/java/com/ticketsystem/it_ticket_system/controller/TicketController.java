@@ -1,7 +1,9 @@
 package com.ticketsystem.it_ticket_system.controller;
 
 import com.ticketsystem.it_ticket_system.dto.CommentDTO;
+import com.ticketsystem.it_ticket_system.dto.CreateTicketDTO;
 import com.ticketsystem.it_ticket_system.dto.TicketDTO;
+import com.ticketsystem.it_ticket_system.dto.UpdateTicketDTO;
 import com.ticketsystem.it_ticket_system.service.CommentService;
 import com.ticketsystem.it_ticket_system.service.TicketService;
 import jakarta.validation.Valid;
@@ -60,14 +62,14 @@ public class TicketController {
 
     @PostMapping
     @PreAuthorize("hasAnyRole('ADMIN', 'EMPLOYEE')")
-    public ResponseEntity<TicketDTO> createTicket(@Valid @RequestBody TicketDTO ticketDTO) {
+    public ResponseEntity<TicketDTO> createTicket(@Valid @RequestBody CreateTicketDTO ticketDTO) {
         TicketDTO createdTicket = ticketService.createTicket(ticketDTO);
         return new ResponseEntity<>(createdTicket, HttpStatus.CREATED);
     }
 
-    @PutMapping("/{id}")
+    @PatchMapping("/{id}")
     @PreAuthorize("hasAnyRole('ADMIN', 'EMPLOYEE','TECHNICIAN')")
-    public ResponseEntity<TicketDTO> updateTicket(@PathVariable Long id, @Valid @RequestBody TicketDTO ticketDTO) {
+    public ResponseEntity<TicketDTO> updateTicket(@PathVariable Long id, @Valid @RequestBody UpdateTicketDTO ticketDTO) {
         TicketDTO updatedTicket = ticketService.updateTicket(id, ticketDTO);
         return ResponseEntity.ok(updatedTicket);
     }
