@@ -6,6 +6,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import com.ticketsystem.it_ticket_system.exception.ValidationException;
 import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.authentication.*;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -88,6 +89,23 @@ public class GlobalExceptionHandler {
                 LocalDateTime.now()
         );
         return new ResponseEntity<>(error, HttpStatus.CONFLICT);
+    }
+
+    @ExceptionHandler({
+            BadCredentialsException.class,
+            DisabledException.class,
+            LockedException.class,
+            AccountExpiredException.class,
+            CredentialsExpiredException.class
+    })
+    public ResponseEntity<ErrorResponse> handleAuthenticationException(Exception ex) {
+        ErrorResponse error = new ErrorResponse(
+                HttpStatus.UNAUTHORIZED.value(),
+                "Unauthorized",
+                "Invalid username or password",
+                LocalDateTime.now()
+        );
+        return new ResponseEntity<>(error, HttpStatus.UNAUTHORIZED);
     }
 
     @ExceptionHandler(Exception.class)
