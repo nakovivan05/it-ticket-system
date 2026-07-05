@@ -20,6 +20,7 @@ public class UserDTO {
     @Size(min = 5, max = 20, message = "Username must be between 5 and 20 characters")
     private String username;
     private LocalDateTime createdAt;
+    private LocalDateTime updatedAt;
     private String role;
     private Boolean accountNonExpired;
     private Boolean accountNonLocked;
@@ -33,6 +34,7 @@ public class UserDTO {
                 .email(user.getEmail())
                 .username(user.getUsername())
                 .createdAt(user.getCreatedAt())
+                .updatedAt(user.getUpdatedAt())
                 .role(user.getRole().name())
                 .accountNonExpired(user.isAccountNonExpired())
                 .accountNonLocked(user.isAccountNonLocked())
