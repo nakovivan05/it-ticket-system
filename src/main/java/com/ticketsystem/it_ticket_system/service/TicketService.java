@@ -27,13 +27,16 @@ public class TicketService {
     private final TicketRepository ticketRepository;
     private final CategoryRepository categoryRepository;
     private final UserRepository userRepository;
+    private final AuditLogService auditLogService;
 
     public TicketService(TicketRepository ticketRepository,
                          CategoryRepository categoryRepository,
-                         UserRepository userRepository) {
+                         UserRepository userRepository,
+                         AuditLogService auditLogService) {
         this.ticketRepository = ticketRepository;
         this.categoryRepository = categoryRepository;
         this.userRepository = userRepository;
+        this.auditLogService = auditLogService;
     }
 
     @PreAuthorize("hasAnyRole('ADMIN', 'EMPLOYEE', 'TECHNICIAN')")
@@ -91,6 +94,7 @@ public class TicketService {
         ticket.setReporter(user);
 
         Ticket savedTicket = ticketRepository.save(ticket);
+        auditLogService.auditLog(EntityType.TICKET, Operation.CREATE, "Ticket created", savedTicket.getId(), currentUser);
         return TicketDTO.fromEntity(savedTicket);
     }
 
@@ -172,6 +176,7 @@ public class TicketService {
 
 
         Ticket updatedTicket = ticketRepository.save(existingTicket);
+        auditLogService.auditLog(EntityType.TICKET, Operation.UPDATE, "Ticket updated by: " + currentUser, updatedTicket.getId(), currentUser);
         return TicketDTO.fromEntity(updatedTicket);
     }
 
@@ -190,6 +195,7 @@ public class TicketService {
         }
 
         ticketRepository.delete(existingTicket);
+        auditLogService.auditLog(EntityType.TICKET, Operation.DELETE, "Ticket deleted", existingTicket.getId(), currentUser);
     }
 
     private void validateStatusTransition(TicketStatus currentStatus, TicketStatus newStatus, User assignee) {

@@ -7,8 +7,11 @@ import com.ticketsystem.it_ticket_system.exception.DuplicateUsernameException;
 import com.ticketsystem.it_ticket_system.exception.UserNotFoundException;
 import com.ticketsystem.it_ticket_system.exception.ValidationException;
 import com.ticketsystem.it_ticket_system.dto.UserDTO;
+import com.ticketsystem.it_ticket_system.model.EntityType;
+import com.ticketsystem.it_ticket_system.model.Operation;
 import com.ticketsystem.it_ticket_system.model.User;
 import com.ticketsystem.it_ticket_system.model.UserRole;
+import com.ticketsystem.it_ticket_system.repository.AuditLogRepository;
 import com.ticketsystem.it_ticket_system.repository.TicketRepository;
 import com.ticketsystem.it_ticket_system.repository.UserRepository;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -22,15 +25,17 @@ import java.util.List;
 import java.util.Optional;
 
 @Service
-public class UserService {
+public class UserService{
     private final UserRepository userRepository;
     private final TicketRepository ticketRepository;
     private final PasswordEncoder passwordEncoder;
+    private final AuditLogService auditLogService;
 
-    public UserService(UserRepository userRepository, TicketRepository ticketRepository, PasswordEncoder passwordEncoder) {
+    public UserService(UserRepository userRepository, TicketRepository ticketRepository, PasswordEncoder passwordEncoder, AuditLogService auditLogService) {
         this.userRepository = userRepository;
         this.ticketRepository = ticketRepository;
         this.passwordEncoder = passwordEncoder;
+        this.auditLogService = auditLogService;
     }
 
     @PreAuthorize("hasRole('ADMIN')")
@@ -97,6 +102,7 @@ public class UserService {
             existingUser.setCredentialsNonExpired(userDTO.getCredentialsNonExpired());
         }
         User updatedUser = userRepository.save(existingUser);
+        auditLogService.auditLog(EntityType.USER, Operation.UPDATE, "User updated: " + updatedUser.getUsername(), id, getCurrentUser());
         return UserDTO.fromEntity(updatedUser);
     }
 
@@ -109,6 +115,7 @@ public class UserService {
             throw new ValidationException("Cannot delete user that is referenced by tickets");
         }
         userRepository.delete(existingUser);
+        auditLogService.auditLog(EntityType.USER, Operation.DELETE, "User deleted: " + existingUser.getUsername(), id, getCurrentUser());
     }
 
     @Transactional
@@ -125,10 +132,10 @@ public class UserService {
         }
         currentUser.setPassword(passwordEncoder.encode(passwordDTO.getPassword()));
         userRepository.save(currentUser);
+        auditLogService.auditLog(EntityType.USER, Operation.UPDATE, "Password updated", id, getCurrentUser());
     }
 
-    private String getCurrentUser()
-    {
+    private String getCurrentUser() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         return authentication.getName();
     }
