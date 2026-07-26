@@ -6,6 +6,8 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.time.LocalDateTime;
+
 @Data
 @Builder
 @AllArgsConstructor
@@ -23,4 +25,21 @@ public class Category{
 
     @Column(name = "description", nullable = true)
     private String description;
+
+    @Column(name = "created_at", nullable = true)
+    private LocalDateTime createdAt;
+
+    @Column(name = "updated_at", nullable = true)
+    private LocalDateTime updatedAt;
+
+    @PrePersist
+    private void prePersist() {
+        createdAt = LocalDateTime.now();
+        updatedAt = LocalDateTime.now();
+    }
+
+    @PreUpdate
+    private void preUpdate() {
+        updatedAt = LocalDateTime.now();
+    }
 }

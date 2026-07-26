@@ -6,9 +6,7 @@ import com.ticketsystem.it_ticket_system.dto.UpdateCommentDTO;
 import com.ticketsystem.it_ticket_system.exception.CommentNotFoundException;
 import com.ticketsystem.it_ticket_system.exception.TicketNotFoundException;
 import com.ticketsystem.it_ticket_system.exception.UserNotFoundException;
-import com.ticketsystem.it_ticket_system.model.Comment;
-import com.ticketsystem.it_ticket_system.model.Ticket;
-import com.ticketsystem.it_ticket_system.model.User;
+import com.ticketsystem.it_ticket_system.model.*;
 import com.ticketsystem.it_ticket_system.repository.CommentRepository;
 import com.ticketsystem.it_ticket_system.repository.TicketRepository;
 import com.ticketsystem.it_ticket_system.repository.UserRepository;
@@ -25,11 +23,13 @@ public class CommentService {
     private final CommentRepository commentRepository;
     private final TicketRepository ticketRepository;
     private final UserRepository userRepository;
+    private final AuditLogService auditLogService;
 
-    public CommentService(CommentRepository commentRepository, TicketRepository ticketRepository, UserRepository userRepository) {
+    public CommentService(CommentRepository commentRepository, TicketRepository ticketRepository, UserRepository userRepository, AuditLogService auditLogService) {
         this.commentRepository = commentRepository;
         this.ticketRepository = ticketRepository;
         this.userRepository = userRepository;
+        this.auditLogService = auditLogService;
     }
 
     @PreAuthorize("hasRole('ADMIN')")
@@ -97,6 +97,7 @@ public class CommentService {
                 .user(currentUser)
                 .build();
         Comment savedComment = commentRepository.save(comment);
+        auditLogService.auditLog(EntityType.COMMENT, Operation.CREATE, "Comment created", savedComment.getId(), getCurrentUser());
         return CommentDTO.fromEntity(savedComment);
     }
 
@@ -124,6 +125,7 @@ public class CommentService {
         }
         comment.setContent(updateCommentDTO.getContent());
         Comment savedComment = commentRepository.save(comment);
+        auditLogService.auditLog(EntityType.COMMENT, Operation.UPDATE, "Comment updated by: " + currentUser.getUsername(), savedComment.getId(), getCurrentUser());
         return CommentDTO.fromEntity(savedComment);
     }
 
@@ -141,6 +143,7 @@ public class CommentService {
             throw new SecurityException("User is not authorized to delete this comment");
         }
         commentRepository.delete(comment);
+        auditLogService.auditLog(EntityType.COMMENT, Operation.DELETE, "Comment deleted by: " + currentUser.getUsername(), commentId, getCurrentUser());
     }
 
     public String getCurrentUser()

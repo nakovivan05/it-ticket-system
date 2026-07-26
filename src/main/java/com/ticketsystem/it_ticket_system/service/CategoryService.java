@@ -7,9 +7,12 @@ import com.ticketsystem.it_ticket_system.exception.CategoryNotFoundException;
 import com.ticketsystem.it_ticket_system.exception.DuplicateCategoryNameException;
 import com.ticketsystem.it_ticket_system.exception.ValidationException;
 import com.ticketsystem.it_ticket_system.model.Category;
+import com.ticketsystem.it_ticket_system.model.EntityType;
+import com.ticketsystem.it_ticket_system.model.Operation;
 import com.ticketsystem.it_ticket_system.repository.CategoryRepository;
 import com.ticketsystem.it_ticket_system.repository.TicketRepository;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -21,10 +24,12 @@ import java.util.Optional;
 public class CategoryService {
     private final CategoryRepository categoryRepository;
     private final TicketRepository ticketRepository;
+    private final AuditLogService auditLogService;
 
-    public CategoryService(CategoryRepository categoryRepository, TicketRepository ticketRepository) {
+    public CategoryService(CategoryRepository categoryRepository, TicketRepository ticketRepository, AuditLogService auditLogService) {
         this.categoryRepository = categoryRepository;
         this.ticketRepository = ticketRepository;
+        this.auditLogService = auditLogService;
     }
 
     public CategoryDTO getCategoryById(Long id) {
@@ -50,6 +55,7 @@ public class CategoryService {
 
     @Transactional
     public CategoryDTO createCategory(CreateCategoryDTO createCategoryDTO) {
+        String currentUser = SecurityContextHolder.getContext().getAuthentication().getName();
         Category category = Category.builder()
                 .name(createCategoryDTO.getName())
                 .description(createCategoryDTO.getDescription())
@@ -58,6 +64,7 @@ public class CategoryService {
             throw new DuplicateCategoryNameException("Category name already exists: " + createCategoryDTO.getName());
         }
         Category savedCategory = categoryRepository.save(category);
+        auditLogService.auditLog(EntityType.CATEGORY, Operation.CREATE,"Category created: " + createCategoryDTO.getName(), savedCategory.getId(), getCurrentUser());
         return CategoryDTO.fromEntity(savedCategory);
     }
 
@@ -81,6 +88,7 @@ public class CategoryService {
        }
 
         Category updatedCategory = categoryRepository.save(existingCategory);
+        auditLogService.auditLog(EntityType.CATEGORY, Operation.UPDATE, "Category updated: " + existingCategory.getName(), updatedCategory.getId(), getCurrentUser());
         return CategoryDTO.fromEntity(updatedCategory);
     }
 
@@ -93,6 +101,11 @@ public class CategoryService {
             throw new ValidationException("Cannot delete category that is referenced by tickets");
         }
         categoryRepository.delete(existingCategory);
+        auditLogService.auditLog(EntityType.CATEGORY, Operation.DELETE, "Category deleted: " + existingCategory.getName(),id, getCurrentUser());
+    }
+
+    public String getCurrentUser() {
+        return SecurityContextHolder.getContext().getAuthentication().getName();
     }
 
 }
