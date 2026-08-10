@@ -11,20 +11,28 @@ import com.ticketsystem.it_ticket_system.model.EntityType;
 import com.ticketsystem.it_ticket_system.model.Operation;
 import com.ticketsystem.it_ticket_system.repository.CategoryRepository;
 import com.ticketsystem.it_ticket_system.repository.TicketRepository;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.security.test.context.support.WithMockUser;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.core.context.SecurityContextHolder;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -41,8 +49,29 @@ public class CategoryServiceTest {
     @InjectMocks
     CategoryService categoryService;
 
+    @BeforeEach
+    void setUp() {
+        setupSecurityContext("admin", "ADMIN");
+    }
+
+    @AfterEach
+    void tearDown() {
+        SecurityContextHolder.clearContext();
+    }
+
+    private void setupSecurityContext(String username, String role) {
+        Authentication authentication = org.mockito.Mockito.mock(Authentication.class);
+        lenient().when(authentication.getName()).thenReturn(username);
+
+        Collection<SimpleGrantedAuthority> authorities = List.of(
+                new SimpleGrantedAuthority("ROLE_" + role)
+        );
+        lenient().when(authentication.getAuthorities()).thenReturn((Collection) authorities);
+
+        SecurityContextHolder.getContext().setAuthentication(authentication);
+    }
+
     @Test
-    @WithMockUser(roles = "ADMIN")
     void getCategoryById_WhenCategoryNotFound_ThrowsException()
     {
         Long categoryId = 999L;
@@ -51,7 +80,6 @@ public class CategoryServiceTest {
     }
 
     @Test
-    @WithMockUser(roles = "ADMIN")
     void getCategoryById_WhenCategoryExists_ReturnsCategoryDTO()
     {
         Category category = new Category();
@@ -67,7 +95,6 @@ public class CategoryServiceTest {
     }
 
     @Test
-    @WithMockUser(roles = "ADMIN")
     void getAllCategories_ReturnsList() {
         Category category1 = new Category();
         category1.setId(1L);
@@ -89,7 +116,6 @@ public class CategoryServiceTest {
     }
 
     @Test
-    @WithMockUser(roles = "ADMIN")
     void getCategoryByName_WhenCategoryExists_ReturnsCategoryDTO() {
         String categoryName = "Hardware";
         Category category = new Category();
@@ -105,7 +131,6 @@ public class CategoryServiceTest {
     }
 
     @Test
-    @WithMockUser(roles = "ADMIN")
     void getCategoryByName_WhenCategoryNotFound_ThrowsException() {
         String categoryName = "NonExistent";
 
@@ -115,7 +140,6 @@ public class CategoryServiceTest {
     }
 
     @Test
-    @WithMockUser(roles = "ADMIN")
     void createCategory_WhenValidData_ReturnsCategoryDTO() {
         CreateCategoryDTO dto = CreateCategoryDTO.builder()
                 .name("Hardware")
@@ -129,11 +153,10 @@ public class CategoryServiceTest {
 
         assertEquals("Hardware", result.getName());
         assertEquals("Hardware issues", result.getDescription());
-        verify(auditLogService).auditLog(EntityType.CATEGORY, Operation.CREATE, "Category created: Hardware", any(), "admin");
+        verify(auditLogService).auditLog(eq(EntityType.CATEGORY), eq(Operation.CREATE), eq("Category created: Hardware"), any(), eq("admin"));
     }
 
     @Test
-    @WithMockUser(roles = "ADMIN")
     void createCategory_WhenDuplicateName_ThrowsException() {
         CreateCategoryDTO dto = CreateCategoryDTO.builder()
                 .name("Hardware")
@@ -149,7 +172,6 @@ public class CategoryServiceTest {
     }
 
     @Test
-    @WithMockUser(roles = "ADMIN")
     void updateCategory_WhenCategoryNotFound_ThrowsException() {
         Long categoryId = 999L;
         UpdateCategoryDTO dto = new UpdateCategoryDTO();
@@ -160,7 +182,6 @@ public class CategoryServiceTest {
     }
 
     @Test
-    @WithMockUser(roles = "ADMIN")
     void updateCategory_WhenDuplicateName_ThrowsException() {
         Long categoryId = 1L;
         Category existingCategory = new Category();
@@ -178,7 +199,6 @@ public class CategoryServiceTest {
     }
 
     @Test
-    @WithMockUser(roles = "ADMIN")
     void updateCategory_WhenValidData_ReturnsUpdatedCategoryDTO() {
         Long categoryId = 1L;
         Category existingCategory = new Category();
@@ -199,11 +219,10 @@ public class CategoryServiceTest {
 
         assertEquals("NewName", result.getName());
         assertEquals("New description", result.getDescription());
-        verify(auditLogService).auditLog(EntityType.CATEGORY, Operation.UPDATE, "Category updated: NewName", categoryId, "admin");
+        verify(auditLogService).auditLog(eq(EntityType.CATEGORY), eq(Operation.UPDATE), eq("Category updated: NewName"), eq(categoryId), eq("admin"));
     }
 
     @Test
-    @WithMockUser(roles = "ADMIN")
     void deleteCategory_WhenCategoryNotFound_ThrowsException() {
         Long categoryId = 999L;
 
@@ -213,7 +232,6 @@ public class CategoryServiceTest {
     }
 
     @Test
-    @WithMockUser(roles = "ADMIN")
     void deleteCategory_WhenReferencedByTickets_ThrowsException() {
         Long categoryId = 1L;
         Category existingCategory = new Category();
@@ -227,7 +245,6 @@ public class CategoryServiceTest {
     }
 
     @Test
-    @WithMockUser(roles = "ADMIN")
     void deleteCategory_WhenValidCategory_DeletesCategory() {
         Long categoryId = 1L;
         Category existingCategory = new Category();
@@ -240,6 +257,6 @@ public class CategoryServiceTest {
         categoryService.deleteCategory(categoryId);
 
         verify(categoryRepository).delete(existingCategory);
-        verify(auditLogService).auditLog(EntityType.CATEGORY, Operation.DELETE, "Category deleted: Hardware", categoryId, "admin");
+        verify(auditLogService).auditLog(eq(EntityType.CATEGORY), eq(Operation.DELETE), eq("Category deleted: Hardware"), eq(categoryId), eq("admin"));
     }
 }

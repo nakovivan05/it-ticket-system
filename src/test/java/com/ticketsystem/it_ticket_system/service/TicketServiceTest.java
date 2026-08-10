@@ -11,21 +11,29 @@ import com.ticketsystem.it_ticket_system.model.*;
 import com.ticketsystem.it_ticket_system.repository.CategoryRepository;
 import com.ticketsystem.it_ticket_system.repository.TicketRepository;
 import com.ticketsystem.it_ticket_system.repository.UserRepository;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.domain.Sort;
-import org.springframework.security.test.context.support.WithMockUser;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.core.context.SecurityContextHolder;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -46,8 +54,29 @@ public class TicketServiceTest {
     @InjectMocks
     private TicketService ticketService;
 
+    @BeforeEach
+    void setUp() {
+        setupSecurityContext("admin", "ADMIN");
+    }
+
+    @AfterEach
+    void tearDown() {
+        SecurityContextHolder.clearContext();
+    }
+
+    private void setupSecurityContext(String username, String role) {
+        Authentication authentication = org.mockito.Mockito.mock(Authentication.class);
+        lenient().when(authentication.getName()).thenReturn(username);
+
+        Collection<SimpleGrantedAuthority> authorities = List.of(
+                new SimpleGrantedAuthority("ROLE_" + role)
+        );
+        lenient().when(authentication.getAuthorities()).thenReturn((Collection) authorities);
+
+        SecurityContextHolder.getContext().setAuthentication(authentication);
+    }
+
     @Test
-    @WithMockUser(username = "admin", roles = "ADMIN")
     void getTicketById_WhenTicketExists_ReturnsTicketDTO() {
         Long ticketId = 1L;
         Ticket ticket = new Ticket();
@@ -63,7 +92,6 @@ public class TicketServiceTest {
     }
 
     @Test
-    @WithMockUser(username = "admin", roles = "ADMIN")
     void getTicketById_WhenTicketNotFound_ThrowsException() {
         Long ticketId = 999L;
 
@@ -73,14 +101,15 @@ public class TicketServiceTest {
     }
 
     @Test
-    @WithMockUser(username = "employee", roles = "EMPLOYEE")
     void getTicketById_WhenEmployeeViewsOwnTicket_ReturnsTicketDTO() {
+        setupSecurityContext("employee", "EMPLOYEE");
         Long ticketId = 1L;
         Ticket ticket = new Ticket();
         ticket.setId(ticketId);
 
         User reporter = new User();
         reporter.setUsername("employee");
+        reporter.setRole(UserRole.EMPLOYEE);
         ticket.setReporter(reporter);
 
         when(ticketRepository.findById(ticketId)).thenReturn(Optional.of(ticket));
@@ -91,14 +120,15 @@ public class TicketServiceTest {
     }
 
     @Test
-    @WithMockUser(username = "employee", roles = "EMPLOYEE")
     void getTicketById_WhenEmployeeViewsOthersTicket_ThrowsSecurityException() {
+        setupSecurityContext("employee", "EMPLOYEE");
         Long ticketId = 1L;
         Ticket ticket = new Ticket();
         ticket.setId(ticketId);
 
         User reporter = new User();
         reporter.setUsername("otheruser");
+        reporter.setRole(UserRole.EMPLOYEE);
         ticket.setReporter(reporter);
 
         when(ticketRepository.findById(ticketId)).thenReturn(Optional.of(ticket));
@@ -107,7 +137,6 @@ public class TicketServiceTest {
     }
 
     @Test
-    @WithMockUser(username = "admin", roles = "ADMIN")
     void getAllTickets_WhenAdmin_ReturnsAllTickets() {
         Ticket ticket1 = new Ticket();
         ticket1.setId(1L);
@@ -125,12 +154,12 @@ public class TicketServiceTest {
     }
 
     @Test
-    @WithMockUser(username = "employee", roles = "EMPLOYEE")
     void getAllTickets_WhenEmployee_ReturnsOwnTickets() {
+        setupSecurityContext("employee", "EMPLOYEE");
         Ticket ticket1 = new Ticket();
         ticket1.setId(1L);
 
-        when(ticketRepository.findByReporterUsername("employee", any(Sort.class))).thenReturn(List.of(ticket1));
+        when(ticketRepository.findByReporterUsername(eq("employee"), any(Sort.class))).thenReturn(List.of(ticket1));
 
         List<TicketDTO> result = ticketService.getAllTickets("createdAt", "desc");
 
@@ -139,8 +168,8 @@ public class TicketServiceTest {
     }
 
     @Test
-    @WithMockUser(username = "employee", roles = "EMPLOYEE")
     void createTicket_WhenValidData_ReturnsTicketDTO() {
+        setupSecurityContext("employee", "EMPLOYEE");
         CreateTicketDTO dto = CreateTicketDTO.builder()
                 .title("New Ticket")
                 .description("Description")
@@ -152,11 +181,13 @@ public class TicketServiceTest {
 
         User reporter = new User();
         reporter.setUsername("employee");
+        reporter.setRole(UserRole.EMPLOYEE);
 
         Ticket ticket = new Ticket();
         ticket.setId(1L);
         ticket.setTitle("New Ticket");
         ticket.setStatus(TicketStatus.NEW);
+        ticket.setReporter(reporter);
 
         when(categoryRepository.findById(1L)).thenReturn(Optional.of(category));
         when(userRepository.findByUsername("employee")).thenReturn(Optional.of(reporter));
@@ -165,13 +196,13 @@ public class TicketServiceTest {
         TicketDTO result = ticketService.createTicket(dto);
 
         assertEquals("New Ticket", result.getTitle());
-        assertEquals(TicketStatus.NEW, result.getStatus());
+        assertEquals("NEW", result.getStatus());
         verify(auditLogService).auditLog(EntityType.TICKET, Operation.CREATE, "Ticket created", 1L, "employee");
     }
 
     @Test
-    @WithMockUser(username = "employee", roles = "EMPLOYEE")
     void createTicket_WhenCategoryNotFound_ThrowsException() {
+        setupSecurityContext("employee", "EMPLOYEE");
         CreateTicketDTO dto = CreateTicketDTO.builder()
                 .title("New Ticket")
                 .categoryId(999L)
@@ -183,7 +214,6 @@ public class TicketServiceTest {
     }
 
     @Test
-    @WithMockUser(username = "admin", roles = "ADMIN")
     void updateTicket_WhenAdminUpdatesAllFields_ReturnsUpdatedTicketDTO() {
         Long ticketId = 1L;
         UpdateTicketDTO dto = UpdateTicketDTO.builder()
@@ -197,6 +227,7 @@ public class TicketServiceTest {
         Ticket ticket = new Ticket();
         ticket.setId(ticketId);
         ticket.setTitle("Old Title");
+        ticket.setStatus(TicketStatus.NEW);
 
         Category category = new Category();
         category.setId(3L);
@@ -217,8 +248,8 @@ public class TicketServiceTest {
     }
 
     @Test
-    @WithMockUser(username = "employee", roles = "EMPLOYEE")
     void updateTicket_WhenEmployeeTriesToAssign_ThrowsException() {
+        setupSecurityContext("employee", "EMPLOYEE");
         Long ticketId = 1L;
         UpdateTicketDTO dto = UpdateTicketDTO.builder()
                 .assigneeId(2L)
@@ -229,6 +260,7 @@ public class TicketServiceTest {
 
         User reporter = new User();
         reporter.setUsername("employee");
+        reporter.setRole(UserRole.EMPLOYEE);
         ticket.setReporter(reporter);
 
         when(ticketRepository.findById(ticketId)).thenReturn(Optional.of(ticket));
@@ -237,8 +269,8 @@ public class TicketServiceTest {
     }
 
     @Test
-    @WithMockUser(username = "employee", roles = "EMPLOYEE")
     void updateTicket_WhenEmployeeTriesToChangeStatus_ThrowsException() {
+        setupSecurityContext("employee", "EMPLOYEE");
         Long ticketId = 1L;
         UpdateTicketDTO dto = UpdateTicketDTO.builder()
                 .status(TicketStatus.IN_PROGRESS)
@@ -249,6 +281,7 @@ public class TicketServiceTest {
 
         User reporter = new User();
         reporter.setUsername("employee");
+        reporter.setRole(UserRole.EMPLOYEE);
         ticket.setReporter(reporter);
 
         when(ticketRepository.findById(ticketId)).thenReturn(Optional.of(ticket));
@@ -257,8 +290,8 @@ public class TicketServiceTest {
     }
 
     @Test
-    @WithMockUser(username = "technician", roles = "TECHNICIAN")
     void updateTicket_WhenTechnicianTriesToChangeTitle_ThrowsException() {
+        setupSecurityContext("technician", "TECHNICIAN");
         Long ticketId = 1L;
         UpdateTicketDTO dto = UpdateTicketDTO.builder()
                 .title("New Title")
@@ -269,6 +302,7 @@ public class TicketServiceTest {
 
         User technician = new User();
         technician.setUsername("technician");
+        technician.setRole(UserRole.TECHNICIAN);
         ticket.setAssignee(technician);
 
         when(ticketRepository.findById(ticketId)).thenReturn(Optional.of(ticket));
@@ -277,8 +311,8 @@ public class TicketServiceTest {
     }
 
     @Test
-    @WithMockUser(username = "technician", roles = "TECHNICIAN")
     void updateTicket_WhenTechnicianTriesToChangeDescription_ThrowsException() {
+        setupSecurityContext("technician", "TECHNICIAN");
         Long ticketId = 1L;
         UpdateTicketDTO dto = UpdateTicketDTO.builder()
                 .description("New Description")
@@ -289,6 +323,7 @@ public class TicketServiceTest {
 
         User technician = new User();
         technician.setUsername("technician");
+        technician.setRole(UserRole.TECHNICIAN);
         ticket.setAssignee(technician);
 
         when(ticketRepository.findById(ticketId)).thenReturn(Optional.of(ticket));
@@ -297,8 +332,8 @@ public class TicketServiceTest {
     }
 
     @Test
-    @WithMockUser(username = "technician", roles = "TECHNICIAN")
     void updateTicket_WhenTechnicianUpdatesOthersTicket_ThrowsSecurityException() {
+        setupSecurityContext("technician", "TECHNICIAN");
         Long ticketId = 1L;
         UpdateTicketDTO dto = UpdateTicketDTO.builder()
                 .status(TicketStatus.IN_PROGRESS)
@@ -309,6 +344,7 @@ public class TicketServiceTest {
 
         User otherTechnician = new User();
         otherTechnician.setUsername("othertechnician");
+        otherTechnician.setRole(UserRole.TECHNICIAN);
         ticket.setAssignee(otherTechnician);
 
         when(ticketRepository.findById(ticketId)).thenReturn(Optional.of(ticket));
@@ -317,7 +353,6 @@ public class TicketServiceTest {
     }
 
     @Test
-    @WithMockUser(username = "admin", roles = "ADMIN")
     void updateTicket_WhenAssigneeNotTechnicianOrAdmin_ThrowsException() {
         Long ticketId = 1L;
         UpdateTicketDTO dto = UpdateTicketDTO.builder()
@@ -338,7 +373,6 @@ public class TicketServiceTest {
     }
 
     @Test
-    @WithMockUser(username = "admin", roles = "ADMIN")
     void updateTicket_WhenInvalidStatusTransition_ThrowsException() {
         Long ticketId = 1L;
         UpdateTicketDTO dto = UpdateTicketDTO.builder()
@@ -355,7 +389,6 @@ public class TicketServiceTest {
     }
 
     @Test
-    @WithMockUser(username = "admin", roles = "ADMIN")
     void updateTicket_WhenStatusTransitionRequiresAssigneeButNoneProvided_ThrowsException() {
         Long ticketId = 1L;
         UpdateTicketDTO dto = UpdateTicketDTO.builder()
@@ -373,7 +406,6 @@ public class TicketServiceTest {
     }
 
     @Test
-    @WithMockUser(username = "admin", roles = "ADMIN")
     void updateTicket_WhenAssigneeSetsStatusToAssigned_UpdatesStatus() {
         Long ticketId = 1L;
         UpdateTicketDTO dto = UpdateTicketDTO.builder()
@@ -398,14 +430,15 @@ public class TicketServiceTest {
     }
 
     @Test
-    @WithMockUser(username = "employee", roles = "EMPLOYEE")
     void deleteTicket_WhenEmployeeDeletesOwnTicket_DeletesTicket() {
+        setupSecurityContext("employee", "EMPLOYEE");
         Long ticketId = 1L;
         Ticket ticket = new Ticket();
         ticket.setId(ticketId);
 
         User reporter = new User();
         reporter.setUsername("employee");
+        reporter.setRole(UserRole.EMPLOYEE);
         ticket.setReporter(reporter);
 
         when(ticketRepository.findById(ticketId)).thenReturn(Optional.of(ticket));
@@ -417,14 +450,15 @@ public class TicketServiceTest {
     }
 
     @Test
-    @WithMockUser(username = "employee", roles = "EMPLOYEE")
     void deleteTicket_WhenEmployeeDeletesOthersTicket_ThrowsSecurityException() {
+        setupSecurityContext("employee", "EMPLOYEE");
         Long ticketId = 1L;
         Ticket ticket = new Ticket();
         ticket.setId(ticketId);
 
         User reporter = new User();
         reporter.setUsername("otheruser");
+        reporter.setRole(UserRole.EMPLOYEE);
         ticket.setReporter(reporter);
 
         when(ticketRepository.findById(ticketId)).thenReturn(Optional.of(ticket));
@@ -433,7 +467,6 @@ public class TicketServiceTest {
     }
 
     @Test
-    @WithMockUser(username = "admin", roles = "ADMIN")
     void deleteTicket_WhenAdminDeletesAnyTicket_DeletesTicket() {
         Long ticketId = 1L;
         Ticket ticket = new Ticket();
@@ -448,7 +481,6 @@ public class TicketServiceTest {
     }
 
     @Test
-    @WithMockUser(username = "admin", roles = "ADMIN")
     void deleteTicket_WhenTicketNotFound_ThrowsException() {
         Long ticketId = 999L;
 

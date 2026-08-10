@@ -10,23 +10,32 @@ import com.ticketsystem.it_ticket_system.exception.ValidationException;
 import com.ticketsystem.it_ticket_system.model.EntityType;
 import com.ticketsystem.it_ticket_system.model.Operation;
 import com.ticketsystem.it_ticket_system.model.User;
+import com.ticketsystem.it_ticket_system.model.UserRole;
 import com.ticketsystem.it_ticket_system.repository.TicketRepository;
 import com.ticketsystem.it_ticket_system.repository.UserRepository;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.security.test.context.support.WithMockUser;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -47,13 +56,35 @@ public class UserServiceTest {
     @InjectMocks
     private UserService userService;
 
+    @BeforeEach
+    void setUp() {
+        setupSecurityContext("admin", "ADMIN");
+    }
+
+    @AfterEach
+    void tearDown() {
+        SecurityContextHolder.clearContext();
+    }
+
+    private void setupSecurityContext(String username, String role) {
+        Authentication authentication = org.mockito.Mockito.mock(Authentication.class);
+        lenient().when(authentication.getName()).thenReturn(username);
+
+        Collection<SimpleGrantedAuthority> authorities = List.of(
+                new SimpleGrantedAuthority("ROLE_" + role)
+        );
+        lenient().when(authentication.getAuthorities()).thenReturn((Collection) authorities);
+
+        SecurityContextHolder.getContext().setAuthentication(authentication);
+    }
+
     @Test
-    @WithMockUser(roles = "ADMIN")
     void getUserById_WhenUserExists_ReturnsUserDTO() {
         Long userId = 1L;
         User testUser = new User();
         testUser.setId(userId);
         testUser.setUsername("testuser");
+        testUser.setRole(UserRole.EMPLOYEE);
 
         when(userRepository.findById(userId)).thenReturn(Optional.of(testUser));
 
@@ -64,7 +95,6 @@ public class UserServiceTest {
     }
 
     @Test
-    @WithMockUser(roles = "ADMIN")
     void getUserById_WhenUserNotFound_ThrowsException() {
         Long userId = 999L;
 
@@ -74,12 +104,13 @@ public class UserServiceTest {
     }
 
     @Test
-    @WithMockUser(roles = "ADMIN")
     void getAllUsers_ReturnsList() {
         User testUser1 = new User();
         User testUser2 = new User();
         testUser1.setId(1L);
+        testUser1.setRole(UserRole.EMPLOYEE);
         testUser2.setId(2L);
+        testUser2.setRole(UserRole.TECHNICIAN);
 
         when(userRepository.findAll()).thenReturn(List.of(testUser1, testUser2));
 
@@ -91,12 +122,12 @@ public class UserServiceTest {
     }
 
     @Test
-    @WithMockUser(roles = "ADMIN")
     void getUserByUsername_WhenUserExists_ReturnsUserDTO() {
         String username = "testuser";
         User testUser = new User();
         testUser.setId(1L);
         testUser.setUsername(username);
+        testUser.setRole(UserRole.EMPLOYEE);
 
         when(userRepository.findByUsername(username)).thenReturn(Optional.of(testUser));
 
@@ -107,7 +138,6 @@ public class UserServiceTest {
     }
 
     @Test
-    @WithMockUser(roles = "ADMIN")
     void getUserByUsername_WhenUserNotFound_ThrowsException() {
         String username = "nonexistent";
 
@@ -117,7 +147,6 @@ public class UserServiceTest {
     }
 
     @Test
-    @WithMockUser(roles = "ADMIN")
     void updateUser_WhenUserNotFound_ThrowsException() {
         Long userId = 999L;
         UpdateUserDTO userDTO = new UpdateUserDTO();
@@ -128,12 +157,12 @@ public class UserServiceTest {
     }
 
     @Test
-    @WithMockUser(roles = "ADMIN")
     void updateUser_WhenDuplicateEmail_ThrowsException() {
         Long userId = 1L;
         User existingUser = new User();
         existingUser.setId(userId);
         existingUser.setEmail("old@email.com");
+        existingUser.setRole(UserRole.EMPLOYEE);
 
         UpdateUserDTO userDTO = new UpdateUserDTO();
         userDTO.setEmail("new@email.com");
@@ -145,12 +174,12 @@ public class UserServiceTest {
     }
 
     @Test
-    @WithMockUser(roles = "ADMIN")
     void updateUser_WhenDuplicateUsername_ThrowsException() {
         Long userId = 1L;
         User existingUser = new User();
         existingUser.setId(userId);
         existingUser.setUsername("oldusername");
+        existingUser.setRole(UserRole.EMPLOYEE);
 
         UpdateUserDTO userDTO = UpdateUserDTO.builder()
                 .username("newusername")
@@ -163,12 +192,13 @@ public class UserServiceTest {
     }
 
     @Test
-    @WithMockUser(roles = "ADMIN")
     void updateUser_WhenValidData_ReturnsUpdatedUserDTO() {
         Long userId = 1L;
         User existingUser = new User();
         existingUser.setId(userId);
+        existingUser.setUsername("oldusername");
         existingUser.setEmail("old@email.com");
+        existingUser.setRole(UserRole.EMPLOYEE);
 
         UpdateUserDTO userDTO = new UpdateUserDTO();
         userDTO.setEmail("new@email.com");
@@ -184,14 +214,13 @@ public class UserServiceTest {
         verify(auditLogService).auditLog(
                 EntityType.USER,
                 Operation.UPDATE,
-                "User updated: old@email.com",
+                "User updated: oldusername",
                 userId,
                 "admin"
         );
     }
 
     @Test
-    @WithMockUser(roles = "ADMIN")
     void deleteUser_WhenUserNotFound_ThrowsException() {
         Long userId = 999L;
 
@@ -201,11 +230,11 @@ public class UserServiceTest {
     }
 
     @Test
-    @WithMockUser(roles = "ADMIN")
     void deleteUser_WhenUserReferencedByTickets_ThrowsException() {
         Long userId = 1L;
         User existingUser = new User();
         existingUser.setId(userId);
+        existingUser.setRole(UserRole.EMPLOYEE);
 
         when(userRepository.findById(userId)).thenReturn(Optional.of(existingUser));
         when(ticketRepository.existsByReporterId(userId)).thenReturn(true);
@@ -214,12 +243,12 @@ public class UserServiceTest {
     }
 
     @Test
-    @WithMockUser(roles = "ADMIN")
     void deleteUser_WhenValidUser_DeletesUser() {
         Long userId = 1L;
         User existingUser = new User();
         existingUser.setId(userId);
         existingUser.setUsername("testuser");
+        existingUser.setRole(UserRole.EMPLOYEE);
 
         when(userRepository.findById(userId)).thenReturn(Optional.of(existingUser));
         when(ticketRepository.existsByReporterId(userId)).thenReturn(false);
@@ -239,8 +268,8 @@ public class UserServiceTest {
     }
 
     @Test
-    @WithMockUser(username = "testuser")
     void updatePassword_WhenUserNotFound_ThrowsException() {
+        setupSecurityContext("testuser", "EMPLOYEE");
         Long userId = 999L;
         PasswordDTO passwordDTO = PasswordDTO.builder()
                 .currentPassword("oldpassword")
@@ -253,8 +282,8 @@ public class UserServiceTest {
     }
 
     @Test
-    @WithMockUser(username = "testuser")
     void updatePassword_WhenDifferentUser_ThrowsSecurityException() {
+        setupSecurityContext("testuser", "EMPLOYEE");
         Long userId = 2L;
         PasswordDTO passwordDTO = PasswordDTO.builder()
                 .currentPassword("oldpassword")
@@ -263,6 +292,7 @@ public class UserServiceTest {
 
         User currentUser = new User();
         currentUser.setId(1L);
+        currentUser.setRole(UserRole.EMPLOYEE);
 
         when(userRepository.findByUsername("testuser")).thenReturn(Optional.of(currentUser));
 
@@ -270,8 +300,8 @@ public class UserServiceTest {
     }
 
     @Test
-    @WithMockUser(username = "testuser")
     void updatePassword_WhenCurrentPasswordIncorrect_ThrowsException() {
+        setupSecurityContext("testuser", "EMPLOYEE");
         Long userId = 1L;
         PasswordDTO passwordDTO = PasswordDTO.builder()
                 .currentPassword("wrongpassword")
@@ -281,6 +311,7 @@ public class UserServiceTest {
         User currentUser = new User();
         currentUser.setId(userId);
         currentUser.setPassword("encodedpassword");
+        currentUser.setRole(UserRole.EMPLOYEE);
 
         when(userRepository.findByUsername("testuser")).thenReturn(Optional.of(currentUser));
         when(passwordEncoder.matches("wrongpassword", "encodedpassword")).thenReturn(false);
@@ -289,8 +320,8 @@ public class UserServiceTest {
     }
 
     @Test
-    @WithMockUser(username = "testuser")
     void updatePassword_WhenValidData_UpdatesPassword() {
+        setupSecurityContext("testuser", "EMPLOYEE");
         Long userId = 1L;
         PasswordDTO passwordDTO = PasswordDTO.builder()
                 .currentPassword("oldpassword")
@@ -300,6 +331,7 @@ public class UserServiceTest {
         User currentUser = new User();
         currentUser.setId(userId);
         currentUser.setPassword("encodedoldpassword");
+        currentUser.setRole(UserRole.EMPLOYEE);
 
         when(userRepository.findByUsername("testuser")).thenReturn(Optional.of(currentUser));
         when(passwordEncoder.matches("oldpassword", "encodedoldpassword")).thenReturn(true);
