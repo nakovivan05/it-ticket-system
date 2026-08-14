@@ -1,5 +1,6 @@
 package com.ticketsystem.it_ticket_system.service;
 
+import com.ticketsystem.it_ticket_system.dto.AuditLogDTO;
 import com.ticketsystem.it_ticket_system.model.AuditLog;
 import com.ticketsystem.it_ticket_system.model.EntityType;
 import com.ticketsystem.it_ticket_system.model.Operation;
@@ -33,7 +34,9 @@ public class AuditLogService {
     }
 
     @PreAuthorize("hasRole('ADMIN')")
-    public List<AuditLog> getAllAuditLogs() {
-        return auditLogRepository.findAll();
+    public List<AuditLogDTO> getAllAuditLogs() {
+        return auditLogRepository.findAll().stream()
+                .map(AuditLogDTO::fromEntity)
+                .toList();
     }
 }
