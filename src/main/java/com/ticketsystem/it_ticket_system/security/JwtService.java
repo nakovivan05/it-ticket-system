@@ -1,6 +1,7 @@
 package com.ticketsystem.it_ticket_system.security;
 import io.jsonwebtoken.*;
 import io.jsonwebtoken.security.Keys;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
 
@@ -13,12 +14,11 @@ public class JwtService {
     private final SecretKey secretKey;
     private final long jwtExpiration;
 
-    public JwtService() {
-        String secret = System.getenv("JWT_SECRET");
-        if (secret == null || secret.isEmpty()) {
-            throw new IllegalStateException("JWT_SECRET environment variable must be set");
+    public JwtService(@Value("${JWT_SECRET}") String jwtSecret) {
+        if (jwtSecret == null || jwtSecret.isEmpty()) {
+            throw new IllegalStateException("JWT_SECRET property must be set");
         }
-        this.secretKey = Keys.hmacShaKeyFor(secret.getBytes());
+        this.secretKey = Keys.hmacShaKeyFor(jwtSecret.getBytes());
         this.jwtExpiration = 86400000;
     }
 
