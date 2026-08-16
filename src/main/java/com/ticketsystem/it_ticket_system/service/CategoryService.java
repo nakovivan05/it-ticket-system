@@ -20,7 +20,6 @@ import java.util.List;
 import java.util.Optional;
 
 @Service
-@PreAuthorize("hasRole('ADMIN')")
 public class CategoryService {
     private final CategoryRepository categoryRepository;
     private final TicketRepository ticketRepository;
@@ -32,6 +31,7 @@ public class CategoryService {
         this.auditLogService = auditLogService;
     }
 
+    @PreAuthorize("hasAnyRole('ADMIN', 'EMPLOYEE','TECHNICIAN')")
     public CategoryDTO getCategoryById(Long id) {
 
         return categoryRepository.findById(id)
@@ -39,6 +39,7 @@ public class CategoryService {
                 .orElseThrow(() -> new CategoryNotFoundException("Category not found with id: " + id));
     }
 
+    @PreAuthorize("hasAnyRole('ADMIN', 'EMPLOYEE','TECHNICIAN')")
     public List<CategoryDTO> getAllCategories()
     {
         return categoryRepository.findAll().stream()
@@ -46,6 +47,7 @@ public class CategoryService {
                 .toList();
     }
 
+    @PreAuthorize("hasAnyRole('ADMIN', 'EMPLOYEE','TECHNICIAN')")
     public CategoryDTO getCategoryByName(String name) {
 
         return categoryRepository.findByName(name)
@@ -54,8 +56,9 @@ public class CategoryService {
     }
 
     @Transactional
+    @PreAuthorize("hasRole('ADMIN')")
     public CategoryDTO createCategory(CreateCategoryDTO createCategoryDTO) {
-        String currentUser = SecurityContextHolder.getContext().getAuthentication().getName();
+        String currentUser = getCurrentUser();
         Category category = Category.builder()
                 .name(createCategoryDTO.getName())
                 .description(createCategoryDTO.getDescription())
@@ -69,23 +72,28 @@ public class CategoryService {
     }
 
     @Transactional
+    @PreAuthorize("hasRole('ADMIN')")
     public CategoryDTO updateCategory(Long id, UpdateCategoryDTO updateCategoryDTO) {
         Category existingCategory = categoryRepository.findById(id)
                 .orElseThrow(() -> new CategoryNotFoundException("Category not found with id: " + id));
 
-       if(updateCategoryDTO.getName()!=null)
-       {
-           if(!existingCategory.getName().equals(updateCategoryDTO.getName()) &&
-                   categoryRepository.findByName(updateCategoryDTO.getName()).isPresent()) {
-               throw new DuplicateCategoryNameException("Category name already exists: " + updateCategoryDTO.getName());
-           }
-           existingCategory.setName(updateCategoryDTO.getName());
-       }
+        if(updateCategoryDTO.getName() != null) {
+            if(updateCategoryDTO.getName().length() > 50) {
+                throw new ValidationException("Name must be at most 50 characters long");
+            }
+            if(!existingCategory.getName().equals(updateCategoryDTO.getName()) &&
+                    categoryRepository.findByName(updateCategoryDTO.getName()).isPresent()) {
+                throw new DuplicateCategoryNameException("Category name already exists: " + updateCategoryDTO.getName());
+            }
+            existingCategory.setName(updateCategoryDTO.getName());
+        }
 
-       if(updateCategoryDTO.getDescription()!=null)
-       {
-           existingCategory.setDescription(updateCategoryDTO.getDescription());
-       }
+        if(updateCategoryDTO.getDescription() != null) {
+            if(updateCategoryDTO.getDescription().length() > 255) {
+                throw new ValidationException("Description must be at most 255 characters long");
+            }
+            existingCategory.setDescription(updateCategoryDTO.getDescription());
+        }
 
         Category updatedCategory = categoryRepository.save(existingCategory);
         auditLogService.auditLog(EntityType.CATEGORY, Operation.UPDATE, "Category updated: " + existingCategory.getName(), updatedCategory.getId(), getCurrentUser());
@@ -93,6 +101,7 @@ public class CategoryService {
     }
 
     @Transactional
+    @PreAuthorize("hasRole('ADMIN')")
     public void deleteCategory(Long id)
     {
         Category existingCategory = categoryRepository.findById(id)
