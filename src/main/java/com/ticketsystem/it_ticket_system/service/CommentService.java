@@ -14,6 +14,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -78,6 +79,7 @@ public class CommentService {
                 .collect(Collectors.toList());
     }
 
+    @Transactional
     @PreAuthorize("hasAnyRole('ADMIN', 'EMPLOYEE', 'TECHNICIAN')")
     public CommentDTO createComment(Long ticketId, CreateCommentDTO createCommentDTO)
     {
@@ -101,6 +103,7 @@ public class CommentService {
         return CommentDTO.fromEntity(savedComment);
     }
 
+    @Transactional
     @PreAuthorize("hasAnyRole('ADMIN', 'EMPLOYEE', 'TECHNICIAN')")
     public CommentDTO updateComment(Long ticketId, Long commentId, UpdateCommentDTO updateCommentDTO)
     {
@@ -123,12 +126,15 @@ public class CommentService {
         if (!currentUser.equals(comment.getUser()) && !hasRole("ADMIN")) {
             throw new SecurityException("User is not authorized to update this comment");
         }
-        comment.setContent(updateCommentDTO.getContent());
+        if(updateCommentDTO.getContent()!=null) {
+            comment.setContent(updateCommentDTO.getContent());
+        }
         Comment savedComment = commentRepository.save(comment);
         auditLogService.auditLog(EntityType.COMMENT, Operation.UPDATE, "Comment updated by: " + currentUser.getUsername(), savedComment.getId(), getCurrentUser());
         return CommentDTO.fromEntity(savedComment);
     }
 
+    @Transactional
     @PreAuthorize("hasAnyRole('ADMIN', 'EMPLOYEE', 'TECHNICIAN')")
     public void deleteComment(Long commentId)
     {

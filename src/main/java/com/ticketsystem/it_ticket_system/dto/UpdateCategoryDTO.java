@@ -12,6 +12,8 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 @NoArgsConstructor
 public class UpdateCategoryDTO {
+    @Size(max = 50, message = "Name must be at most 50 characters long")
     private String name;
+    @Size(max = 255, message = "Description must be at most 255 characters long")
     private String description;
 }

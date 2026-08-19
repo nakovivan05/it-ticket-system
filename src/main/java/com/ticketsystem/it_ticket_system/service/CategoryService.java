@@ -78,9 +78,6 @@ public class CategoryService {
                 .orElseThrow(() -> new CategoryNotFoundException("Category not found with id: " + id));
 
         if(updateCategoryDTO.getName() != null) {
-            if(updateCategoryDTO.getName().length() > 50) {
-                throw new ValidationException("Name must be at most 50 characters long");
-            }
             if(!existingCategory.getName().equals(updateCategoryDTO.getName()) &&
                     categoryRepository.findByName(updateCategoryDTO.getName()).isPresent()) {
                 throw new DuplicateCategoryNameException("Category name already exists: " + updateCategoryDTO.getName());
@@ -89,9 +86,6 @@ public class CategoryService {
         }
 
         if(updateCategoryDTO.getDescription() != null) {
-            if(updateCategoryDTO.getDescription().length() > 255) {
-                throw new ValidationException("Description must be at most 255 characters long");
-            }
             existingCategory.setDescription(updateCategoryDTO.getDescription());
         }
 

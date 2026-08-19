@@ -113,11 +113,11 @@ public class TicketService {
             }
             if(updateTicketDTO.getAssigneeId()!=null)
             {
-                throw new ValidationException("EMPLOYEEs cannot assign tickets");
+                throw new SecurityException("EMPLOYEEs cannot assign tickets");
             }
             if(updateTicketDTO.getStatus()!=null)
             {
-                throw new ValidationException("EMPLOYEEs cannot change ticket status");
+                throw new SecurityException("EMPLOYEEs cannot change ticket status");
             }
         }
 
@@ -130,10 +130,10 @@ public class TicketService {
                 throw new SecurityException("You can only update unassigned tickets or tickets assigned to you");
             }
             if (updateTicketDTO.getTitle() != null) {
-                throw new ValidationException("TECHNICIANs cannot change ticket title");
+                throw new SecurityException("TECHNICIANs cannot change ticket title");
             }
             if (updateTicketDTO.getDescription() != null) {
-                throw new ValidationException("TECHNICIANs cannot change ticket description");
+                throw new SecurityException("TECHNICIANs cannot change ticket description");
             }
         }
 
@@ -149,12 +149,9 @@ public class TicketService {
             User assignee = userRepository.findById(updateTicketDTO.getAssigneeId())
                     .orElseThrow(() -> new UserNotFoundException("Assignee not found"));
             if (assignee.getRole() != UserRole.TECHNICIAN && assignee.getRole() != UserRole.ADMIN) {
-                throw new ValidationException("Assignee must be a TECHNICIAN or ADMIN");
+                throw new SecurityException("Assignee must be a TECHNICIAN or ADMIN");
             }
             existingTicket.setAssignee(assignee);
-            if (existingTicket.getStatus() == TicketStatus.NEW) {
-                existingTicket.setStatus(TicketStatus.ASSIGNED);
-            }
         }
 
         if (updateTicketDTO.getCategoryId() != null) {

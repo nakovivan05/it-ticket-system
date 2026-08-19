@@ -12,7 +12,6 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 @NoArgsConstructor
 public class UpdateCommentDTO {
-    @NotBlank(message = "Content cannot be blank")
-    @Size(min=1,max=1000,message = "Content must be between 1 and 1000 characters")
+    @Size(max = 1000, message = "Content must be between 1 and 1000 characters")
     private String content;
 }

@@ -70,10 +70,6 @@ public class UserService{
                 .orElseThrow(() -> new UserNotFoundException("User not found with id: " + id));
 
         if (userDTO.getEmail() != null) {
-            if(!userDTO.getEmail().matches("^[A-Za-z0-9+_.-]+@(.+)$"))
-            {
-                throw new ValidationException("Email is not valid");
-            }
             if (!existingUser.getEmail().equals(userDTO.getEmail()) &&
                     userRepository.existsByEmail(userDTO.getEmail())) {
                 throw new DuplicateEmailException("Email is already registered: " + userDTO.getEmail());
@@ -82,10 +78,6 @@ public class UserService{
         }
 
         if (userDTO.getUsername() != null) {
-            if(!userDTO.getUsername().matches("^[a-zA-Z0-9_]{5,50}$"))
-            {
-                throw new ValidationException("Username is not valid");
-            }
             if (!existingUser.getUsername().equals(userDTO.getUsername()) &&
                     userRepository.existsByUsername(userDTO.getUsername())) {
                 throw new DuplicateUsernameException("Username is already taken: " + userDTO.getUsername());
