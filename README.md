@@ -1,58 +1,56 @@
-# IT Ticket System
+# 🎫 IT Ticket System
 
-![Java](https://img.shields.io/badge/Java-21-orange)
-![Spring Boot](https://img.shields.io/badge/Spring%20Boot-3.5.14-green)
-![MySQL](https://img.shields.io/badge/MySQL-8.0-blue)
-![JWT](https://img.shields.io/badge/JWT-Authentication-red)
+![Java](https://img.shields.io/badge/Java-21-orange?style=for-the-badge&logo=openjdk)
+![Spring Boot](https://img.shields.io/badge/Spring%20Boot-3.5.14-6DB33F?style=for-the-badge&logo=springboot&logoColor=white)
+![MySQL](https://img.shields.io/badge/MySQL-8.0-4479A1?style=for-the-badge&logo=mysql&logoColor=white)
+![JWT](https://img.shields.io/badge/JWT-Authentication-black?style=for-the-badge&logo=jsonwebtokens)
+![Docker](https://img.shields.io/badge/Docker-Enabled-2496ED?style=for-the-badge&logo=docker&logoColor=white)
+![License](https://img.shields.io/badge/License-MIT-yellow?style=for-the-badge)
 
-A comprehensive Enterprise IT Ticket Management System built with Spring Boot 3.5.14 and Java 21. The system enables employees to submit IT support tickets, technicians to resolve issues efficiently, and administrators to manage users and system configuration. Features include role-based access control, JWT authentication, full audit trail, and RESTful API design.
+A robust, enterprise-grade IT Support & Ticket Management Backend built with **Spring Boot 3.5.14** and **Java 21**. Engineered with modern security practices, complete audit traceability, role-based governance, and fully dynamic OpenAPI documentation.
 
-## License
+---
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+## 🛠️ Tech Stack
 
-## Tech Stack
+- **Core Runtime:** ☕ Java 21 (LTS)
+- **Framework:** 🍃 Spring Boot 3.5.14
+- **Security:** 🔒 Spring Security (Method-level authorization, BCrypt)
+- **Authentication:** 🔑 JWT (`jjwt` 0.12.3)
+- **Database & ORM:** 🐬 MySQL 8.0, Spring Data JPA, Hibernate
+- **API Engine & Specs:** 🌐 RESTful APIs, 📖 SpringDoc OpenAPI 2.7.0 (Swagger UI)
+- **Containerization & Build:** 🐳 Docker, Docker Compose, Maven
+- **Utilities:** 🧱 Lombok, Jakarta Validation
 
-- **Java 21** - Programming language
-- **Spring Boot 3.5.14** - Application framework
-- **Spring Data JPA** - ORM and database access
-- **Spring Security** - Security framework
-- **MySQL 8.0** - Relational database
-- **JWT (jjwt 0.12.3)** - Token-based authentication
-- **Lombok** - Reduce boilerplate code
-- **SpringDoc OpenAPI 2.7.0** - API documentation
-- **Docker** - Containerization for database
-- **Maven** - Build tool
+---
 
-## Features
+## ✨ Key Features
 
-- **Role-Based Access Control** - EMPLOYEE, TECHNICIAN, ADMIN roles with method-level security
-- **JWT Authentication** - Secure token-based authentication with login/register endpoints
-- **Ticket Lifecycle Management** - Complete ticket workflow: NEW, ASSIGNED, IN_PROGRESS, RESOLVED, CLOSED
-- **Full Audit Trail** - Track all system changes with comprehensive logging (Admin only)
-- **Comment System** - Collaborative ticket discussions with CRUD operations
-- **Category Management** - Organize tickets by categories with Admin-only management
-- **User Management** - Admin can manage users with full CRUD operations
-- **RESTful API Design** - Clean API endpoints following REST principles
-- **Input Validation** - Comprehensive request validation using Jakarta Validation
-- **Global Exception Handling** - Centralized error handling with custom exceptions
-- **API Documentation** - Swagger UI integration via SpringDoc OpenAPI
-- **Ticket Sorting** - Sort tickets by various fields (id, title, status, dates)
-- **Password Management** - Secure password update functionality for all users
+* 🔐 **Role-Based Access Control (RBAC):** Fine-grained permission model for `EMPLOYEE`, `TECHNICIAN`, and `ADMIN` roles.
+* 🔑 **Stateless JWT Security:** Full authentication lifecycle featuring login and user registration endpoints.
+* 🔄 **Complete Ticket Lifecycle:** End-to-end workflow management (`NEW` ➡️ `ASSIGNED` ➡️ `IN_PROGRESS` ➡️ `RESOLVED` ➡️ `CLOSED`).
+* 🕵️ **Entity Audit Logging:** Automated audit trail system recording all system-wide data updates *(Admin access)*.
+* 💬 **Collaborative Threading:** Commenting mechanism attached to tickets for seamless technician-user communication.
+* 📂 **Category & User Control:** Centralized administrator panels for ticket categorizations and user management.
+* ✅ **Validation & Error Handling:** Global exception handling interceptors paired with Jakarta bean validation.
+* 📑 **Interactive OpenAPI Docs:** Embedded Swagger interface for rapid endpoint testing and contract verification.
+* 🔀 **Multi-Param Sorting:** Dynamic sorting engine by ID, status, priority, and timestamp fields.
 
-## Architecture
+---
+
+## 🏗️ Architecture Design
 
 ```mermaid
 graph TD
-A[Client] --> B[Controller Layer]
-B --> C[Service Layer]
-C --> D[Repository Layer]
-D --> E[MySQL Database]
-B --> F[Security Filter]
-F --> G[JWT Provider]
-C --> H[Audit Service]
+A[📱 Client / Postman / UI] --> B[🌐 Controller Layer]
+B --> C[⚙️ Service Layer]
+C --> D[📦 Repository Layer]
+D --> E[(🐬 MySQL Database)]
+B --> F[🛡️ Security Filter Chain]
+F --> G[🔑 JWT Provider]
+C --> H[🕵️ Audit Log Service]
 ```
-## Database Schema
+## 🗄️ Database Schema
 
 ```mermaid
 erDiagram
@@ -119,19 +117,19 @@ erDiagram
     
 ## Prerequisites
 
-- **Java 21** or higher
-- **Maven 3.8+** - Build tool
-- **Docker** and **Docker Compose** - For MySQL database container
-- **MySQL 8.0** - Database
-- IDE(IntelliJ IDEA, Eclipse, VS Code, etc.)
-- **Git** (optional) - For cloning the repository
+- ☕ **Java 21** or higher
+- 📦 **Maven 3.8+** - Build tool
+- 🐳 **Docker** and **Docker Compose** - For MySQL database container
+- 🐬 **MySQL 8.0** - Database
+- 💻 IDE(IntelliJ IDEA, Eclipse, VS Code, etc.)
+- 🔀 **Git** (optional) - For cloning the repository
 
 ## Installation & Setup
 
 ### 1. Clone the Repository
 
 ```bash
-git clone <your-repo-url>
+git clone https://github.com/nakovivan05/it-ticket-system.git
 cd it-ticket-system
 ```
 
@@ -208,23 +206,23 @@ When you're done, stop the MySQL container:
 docker-compose stop
 ```
 
-## API Documentation
+## 📚 API Documentation
 
 The application uses **SpringDoc OpenAPI** to generate interactive API documentation via Swagger UI.
 
-### Access Swagger UI
+### 🖥️ Access Swagger UI
 
 Once the application is running, access the Swagger UI at:
 http://localhost:8080/swagger-ui.html
 
 
-### OpenAPI Specification
+### 📄 OpenAPI Specification
 
 The raw OpenAPI JSON specification is available at:
 http://localhost:8080/v3/api-docs
 
 
-### Using Swagger UI
+### 🔑 Using Swagger UI
 
 - **Browse endpoints** - View all available API endpoints organized by controller
 - **Try it out** - Execute API requests directly from the browser
@@ -242,7 +240,7 @@ The API includes the following main endpoint groups:
 - **Categories** - `/api/categories/*` (category management)
 - **Audit Logs** - `/api/audit-logs/*` (audit trail - Admin only)
 
-## Testing
+## 🧪 Testing
 
 The project includes unit and integration tests to ensure code quality and functionality.
 
@@ -262,7 +260,7 @@ On Linux/Mac:
 ./mvnw test
 ```
 
-## Future Improvements
+## 🔮 Future Improvements
 
 Planned features and enhancements for future releases:
 
