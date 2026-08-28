@@ -7,7 +7,7 @@
 ![Docker](https://img.shields.io/badge/Docker-Enabled-2496ED?style=for-the-badge&logo=docker&logoColor=white)
 ![License](https://img.shields.io/badge/License-MIT-yellow?style=for-the-badge)
 
-A robust, enterprise-grade IT Support & Ticket Management Backend built with **Spring Boot 3.5.14** and **Java 21**. Engineered with modern security practices, complete audit traceability, role-based governance, and fully dynamic OpenAPI documentation.
+A Spring Boot REST API for managing internal IT support tickets. It handles the full issue lifecycle—allowing employees to report problems, assigning tickets to technicians, and enforcing role-based permissions across the system.
 
 ---
 
@@ -35,6 +35,13 @@ A robust, enterprise-grade IT Support & Ticket Management Backend built with **S
 * ✅ **Validation & Error Handling:** Global exception handling interceptors paired with Jakarta bean validation.
 * 📑 **Interactive OpenAPI Docs:** Embedded Swagger interface for rapid endpoint testing and contract verification.
 * 🔀 **Multi-Param Sorting:** Dynamic sorting engine by ID, status, priority, and timestamp fields.
+
+---
+
+## 📸 API Preview
+
+![JWT Authentication Endpoint](docs/swagger-login.png)
+*JWT Authentication flow returning a 200 OK token response via Swagger UI.*
 
 ---
 
@@ -180,7 +187,7 @@ INSERT INTO users (username, email, password, role, account_non_expired, account
 VALUES ('admin', 'admin@example.com', '$2a$10$YourBCryptHashedPasswordHere', 'ADMIN', true, true, true, true, NOW(), NOW());
 ```
 
-Note: To generate a BCrypt hash for your password, you can use an online BCrypt generator or create a temporary Java utility class. For example, a BCrypt hash for password "admin123" would look like: $2a$10$N9qo8uLOickgx2ZMRZoMy...
+Note: To generate a BCrypt hash for your password, you can use an online BCrypt generator.
 
 ### 6. Run the Application
 
@@ -248,7 +255,7 @@ The project includes unit and integration tests to ensure code quality and funct
 
 Execute all tests using the Maven wrapper:
 
-On windows:
+On Windows:
 
 ```bash
 .\mvnw test
