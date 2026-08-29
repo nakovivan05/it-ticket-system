@@ -13,7 +13,7 @@ A Spring Boot REST API for managing internal IT support tickets. It handles the 
 
 ## 🛠️ Tech Stack
 
-- **Core Runtime:** ☕ Java 21 (LTS)
+- **Language:** ☕ Java 21 
 - **Framework:** 🍃 Spring Boot 3.5.14
 - **Security:** 🔒 Spring Security (Method-level authorization, BCrypt)
 - **Authentication:** 🔑 JWT (`jjwt` 0.12.3)
@@ -24,17 +24,17 @@ A Spring Boot REST API for managing internal IT support tickets. It handles the 
 
 ---
 
-## ✨ Key Features
+## 🚀 Key Features
 
-* 🔐 **Role-Based Access Control (RBAC):** Fine-grained permission model for `EMPLOYEE`, `TECHNICIAN`, and `ADMIN` roles.
-* 🔑 **Stateless JWT Security:** Full authentication lifecycle featuring login and user registration endpoints.
-* 🔄 **Complete Ticket Lifecycle:** End-to-end workflow management (`NEW` ➡️ `ASSIGNED` ➡️ `IN_PROGRESS` ➡️ `RESOLVED` ➡️ `CLOSED`).
-* 🕵️ **Entity Audit Logging:** Automated audit trail system recording all system-wide data updates *(Admin access)*.
-* 💬 **Collaborative Threading:** Commenting mechanism attached to tickets for seamless technician-user communication.
-* 📂 **Category & User Control:** Centralized administrator panels for ticket categorizations and user management.
-* ✅ **Validation & Error Handling:** Global exception handling interceptors paired with Jakarta bean validation.
-* 📑 **Interactive OpenAPI Docs:** Embedded Swagger interface for rapid endpoint testing and contract verification.
-* 🔀 **Multi-Param Sorting:** Dynamic sorting engine by ID, status, priority, and timestamp fields.
+* **Role-Based Access Control (RBAC):** Method-level authorization enforcing distinct permissions for `EMPLOYEE`, `TECHNICIAN`, and `ADMIN` roles.
+* **Stateless JWT Authentication:** Secure login and registration flow producing signed JWT tokens for API authorization.
+* **Ticket Lifecycle Management:** Strict state machine handling transitions across `NEW`, `ASSIGNED`, `IN_PROGRESS`, `RESOLVED`, and `CLOSED`.
+* **Audit Trail System:** Automated change-logging service tracking entity updates for system administrators.
+* **Threaded Commenting:** Ticket-level discussions enabling communication between reporters and assigned technicians.
+* **Admin Management Panel:** Endpoints for managing users, ticket categories, and global permissions.
+* **Global Exception Handling:** Centralized `@ControllerAdvice` paired with Jakarta Bean Validation for standardized error responses.
+* **OpenAPI Documentation:** Integrated Swagger UI interface for contract testing and API exploration.
+* **Dynamic Sorting:** Flexible multi-parameter sorting by ID, status, priority, and timestamps.
 
 ---
 
@@ -144,12 +144,12 @@ cd it-ticket-system
 
 Open the project folder in your preferred IDE (IntelliJ IDEA, Eclipse, VS Code, etc.):
 
-IntelliJ IDEA: File → Open → Select the it-ticket-system folder
-Eclipse: File → Import → Existing Maven Projects
-VS Code: File → Open Folder → Select the it-ticket-system folder
+- IntelliJ IDEA: File → Open → Select the it-ticket-system folder
+- Eclipse: File → Import → Existing Maven Projects
+- VS Code: File → Open Folder → Select the it-ticket-system folder
 
 ### 3. Start MySQL Database
-
+Make sure Docker is running.
 Use Docker Compose to start the MySQL container in detached mode (background):
 
 ```bash
@@ -249,7 +249,7 @@ The API includes the following main endpoint groups:
 
 ## 🧪 Testing
 
-The project includes unit and integration tests to ensure code quality and functionality.
+The project includes unit tests to ensure code quality and functionality.
 
 ### Run All Tests
 
