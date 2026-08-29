@@ -44,7 +44,7 @@ public class CommentController {
 
     @PutMapping("/{ticketId}/{commentId}")
     @PreAuthorize("hasAnyRole('ADMIN', 'EMPLOYEE', 'TECHNICIAN')")
-    public ResponseEntity<CommentDTO> updateComment(@PathVariable Long ticketId, @PathVariable Long commentId, @Valid @RequestBody UpdateCommentDTO commentDTO) {
+    public ResponseEntity<CommentDTO> updateComment(@PathVariable Long ticketId,@PathVariable Long commentId, @Valid @RequestBody UpdateCommentDTO commentDTO) {
         CommentDTO updatedComment = commentService.updateComment(ticketId, commentId, commentDTO);
         return ResponseEntity.ok(updatedComment);
     }

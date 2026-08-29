@@ -1,5 +1,6 @@
 package com.ticketsystem.it_ticket_system.controller;
 
+import com.ticketsystem.it_ticket_system.dto.AuditLogDTO;
 import com.ticketsystem.it_ticket_system.model.AuditLog;
 import com.ticketsystem.it_ticket_system.service.AuditLogService;
 import org.springframework.http.ResponseEntity;
@@ -20,8 +21,8 @@ public class AuditLogController {
     }
 
     @GetMapping
-    public ResponseEntity<List<AuditLog>> getAllAuditLogs() {
-        List<AuditLog> auditLogs = auditLogService.getAllAuditLogs();
+    public ResponseEntity<List<AuditLogDTO>> getAllAuditLogs() {
+        List<AuditLogDTO> auditLogs = auditLogService.getAllAuditLogs();
         return ResponseEntity.ok(auditLogs);
     }
 }

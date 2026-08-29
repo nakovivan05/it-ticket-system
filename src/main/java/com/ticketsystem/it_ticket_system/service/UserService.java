@@ -49,8 +49,9 @@ public class UserService{
 
     @PreAuthorize("hasRole('ADMIN')")
     public List<UserDTO> getAllUsers() {
-        List<User> users = userRepository.findAll();
-        return users.stream()
+
+        return  userRepository
+                .findAll().stream()
                 .map(UserDTO::fromEntity)
                 .toList();
     }

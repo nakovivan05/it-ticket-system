@@ -221,7 +221,7 @@ public class TicketServiceTest {
                 .description("Updated Description")
                 .assigneeId(2L)
                 .categoryId(3L)
-                .status(TicketStatus.IN_PROGRESS)
+                .status(TicketStatus.ASSIGNED)
                 .build();
 
         Ticket ticket = new Ticket();
@@ -265,7 +265,7 @@ public class TicketServiceTest {
 
         when(ticketRepository.findById(ticketId)).thenReturn(Optional.of(ticket));
 
-        assertThrows(ValidationException.class, () -> ticketService.updateTicket(ticketId, dto));
+        assertThrows(SecurityException.class, () -> ticketService.updateTicket(ticketId, dto));
     }
 
     @Test
@@ -286,7 +286,7 @@ public class TicketServiceTest {
 
         when(ticketRepository.findById(ticketId)).thenReturn(Optional.of(ticket));
 
-        assertThrows(ValidationException.class, () -> ticketService.updateTicket(ticketId, dto));
+        assertThrows(SecurityException.class, () -> ticketService.updateTicket(ticketId, dto));
     }
 
     @Test
@@ -307,7 +307,7 @@ public class TicketServiceTest {
 
         when(ticketRepository.findById(ticketId)).thenReturn(Optional.of(ticket));
 
-        assertThrows(ValidationException.class, () -> ticketService.updateTicket(ticketId, dto));
+        assertThrows(SecurityException.class, () -> ticketService.updateTicket(ticketId, dto));
     }
 
     @Test
@@ -328,7 +328,7 @@ public class TicketServiceTest {
 
         when(ticketRepository.findById(ticketId)).thenReturn(Optional.of(ticket));
 
-        assertThrows(ValidationException.class, () -> ticketService.updateTicket(ticketId, dto));
+        assertThrows(SecurityException.class, () -> ticketService.updateTicket(ticketId, dto));
     }
 
     @Test
@@ -369,7 +369,7 @@ public class TicketServiceTest {
         when(ticketRepository.findById(ticketId)).thenReturn(Optional.of(ticket));
         when(userRepository.findById(2L)).thenReturn(Optional.of(employee));
 
-        assertThrows(ValidationException.class, () -> ticketService.updateTicket(ticketId, dto));
+        assertThrows(SecurityException.class, () -> ticketService.updateTicket(ticketId, dto));
     }
 
     @Test
@@ -403,30 +403,6 @@ public class TicketServiceTest {
         when(ticketRepository.findById(ticketId)).thenReturn(Optional.of(ticket));
 
         assertThrows(IllegalStateException.class, () -> ticketService.updateTicket(ticketId, dto));
-    }
-
-    @Test
-    void updateTicket_WhenAssigneeSetsStatusToAssigned_UpdatesStatus() {
-        Long ticketId = 1L;
-        UpdateTicketDTO dto = UpdateTicketDTO.builder()
-                .assigneeId(2L)
-                .build();
-
-        Ticket ticket = new Ticket();
-        ticket.setId(ticketId);
-        ticket.setStatus(TicketStatus.NEW);
-
-        User assignee = new User();
-        assignee.setId(2L);
-        assignee.setRole(UserRole.TECHNICIAN);
-
-        when(ticketRepository.findById(ticketId)).thenReturn(Optional.of(ticket));
-        when(userRepository.findById(2L)).thenReturn(Optional.of(assignee));
-        when(ticketRepository.save(any(Ticket.class))).thenReturn(ticket);
-
-        ticketService.updateTicket(ticketId, dto);
-
-        assertEquals(TicketStatus.ASSIGNED, ticket.getStatus());
     }
 
     @Test

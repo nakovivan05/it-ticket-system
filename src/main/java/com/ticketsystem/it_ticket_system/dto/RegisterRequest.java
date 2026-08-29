@@ -14,7 +14,8 @@ import jakarta.validation.constraints.NotNull;
 @NoArgsConstructor
 @AllArgsConstructor
 public class RegisterRequest {
-    @NotNull
+    @NotBlank(message = "Username cannot be blank")
+    @Size(min = 5, max = 50)
     private String username;
 
     @NotBlank(message = "Password cannot be blank")
